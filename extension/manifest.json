@@ -6,9 +6,11 @@
   "description": "Detect programming languages in Notion code blocks.",
   "permissions": [
     "activeTab",
+    "scripting",
     "storage"
   ],
   "host_permissions": [
+    "https://app.notion.com/*",
     "https://www.notion.so/*"
   ],
   "action": {
@@ -18,6 +20,7 @@
   "content_scripts": [
     {
       "matches": [
+        "https://app.notion.com/*",
         "https://www.notion.so/*"
       ],
       "js": [

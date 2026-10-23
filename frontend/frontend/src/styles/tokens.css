@@ -1,0 +1,58 @@
+/* Design tokens taken from the Figma export (Desktop - 1.svg). */
+:root {
+  /* Colors */
+  --color-bg: #ffffff;
+  --color-ink: #292929;
+  --color-ink-soft: #484747;
+  --color-ink-muted: #616161;
+  --color-ink-faint: rgba(41, 41, 41, 0.33);
+  --color-line: rgba(0, 0, 0, 0.36);
+  --color-card-border: #d4d4d4;
+  --color-surface: #f2f2f2;
+  --color-surface-soft: #f4f4f4;
+  --color-surface-code: #f8f8f8;
+  --color-logo-bg: #343434;
+  --color-accent-pink: #fa95ff;
+  --color-accent-magenta: #bf22c7;
+  --color-accent-amber: #b9732d;
+  --color-accent-peach: #f9cea2;
+
+  /* Gradients */
+  --gradient-pill-dark: linear-gradient(90deg, #070707, #282727);
+  --gradient-pill-slate: linear-gradient(90deg, #515c62, #3b4050);
+  --gradient-pill-border: linear-gradient(90deg, #f9cea2, #bf22c7);
+  --gradient-pill-text: linear-gradient(90deg, #ffffff, #fcd2a8);
+  --gradient-try: linear-gradient(270deg, #2a2a2a, #4c2a2a);
+
+  /* Type */
+  --font-sans: 'Instrument Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-code: 'Ubuntu Mono', ui-monospace, monospace;
+  --font-pixel: 'Micro 5', var(--font-mono);
+  --font-round: 'Comfortaa', var(--font-sans);
+
+  /* Layout */
+  --page-max: 1200px;
+  --page-gutter: 60px;
+  --content-max: 815px;
+  --section-space: 90px;
+
+  /* Shadows */
+  --shadow-pill: 0 0 5.5px rgba(0, 0, 0, 0.25);
+  --shadow-try: 2.5px 3px 8.5px rgba(0, 0, 0, 0.25);
+  --shadow-toolbar: 2.5px 5.5px 18px rgba(0, 0, 0, 0.1);
+  --shadow-cursor: 0 3px 3px rgba(0, 0, 0, 0.25);
+
+  /* Motion: the single place to tune animations once they are added */
+  --motion-duration-fast: 150ms;
+  --motion-duration: 400ms;
+  --motion-duration-slow: 800ms;
+  --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 900px) {
+  :root {
+    --page-gutter: 20px;
+    --section-space: 64px;
+  }
+}

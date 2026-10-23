@@ -18,13 +18,34 @@ async function sendMessage(message) {
     currentWindow: true
   });
 
-  if (!tab?.id || !tab.url?.startsWith(
-    "https://www.notion.so/"
-  )) {
+  const isNotionPage =
+    tab?.url?.startsWith("https://app.notion.com/") ||
+    tab?.url?.startsWith("https://www.notion.so/");
+
+  if (!tab?.id || !isNotionPage) {
     throw new Error("Please open a Notion page first.");
   }
 
-  return chrome.tabs.sendMessage(tab.id, message);
+  try {
+    return await chrome.tabs.sendMessage(tab.id, message);
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : String(error);
+
+    if (
+      !errorMessage.includes("Receiving end does not exist") &&
+      !errorMessage.includes("Could not establish connection")
+    ) {
+      throw error;
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["content.js"]
+    });
+
+    return chrome.tabs.sendMessage(tab.id, message);
+  }
 }
 
 function renderBlocks(blocks) {
@@ -154,13 +175,21 @@ applyBtn.addEventListener("click", async () => {
       result => result.status === "failed"
     );
 
-    setStatus(
-      `${applied} update(s) attempted, ` +
-      `${failed.length} failed.`
-    );
-
     if (failed.length > 0) {
-      console.warn("AutoLang failures:", failed);
+      const reasons = failed
+        .map(result => result.reason)
+        .filter(Boolean);
+      const uniqueReasons = [...new Set(reasons)];
+
+      setStatus(
+        `${applied} language(s) updated; ` +
+        `${failed.length} failed.` +
+        (uniqueReasons.length
+          ? ` ${uniqueReasons.join(" ")}`
+          : "")
+      );
+    } else {
+      setStatus(`${applied} language(s) updated.`);
     }
 
   } catch (error) {

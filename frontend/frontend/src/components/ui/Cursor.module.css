@@ -1,0 +1,7 @@
+.cursor {
+  width: 51px;
+  height: 51px;
+  transform: rotate(var(--cursor-rotate));
+  filter: drop-shadow(var(--shadow-cursor));
+  pointer-events: none;
+}

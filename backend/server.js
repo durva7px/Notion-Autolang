@@ -53,6 +53,10 @@ app.use(
 
 app.use(express.static(frontendPath));
 
+app.get('/', (req, res) => {
+  res.send("Server is running. \nUse /auth/notion to connect workspace")
+})
+
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",

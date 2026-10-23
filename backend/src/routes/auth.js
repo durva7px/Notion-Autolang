@@ -104,7 +104,7 @@ router.get("/notion/callback", async (req, res) => {
         );
       }
 
-      res.redirect("/");
+      res.redirect("/auth/status"); // add "successfully connected" endpoint to render UI
     });
   } catch (error) {
     console.error("OAuth callback error:", error.message);

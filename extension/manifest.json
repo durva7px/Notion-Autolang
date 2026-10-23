@@ -1,0 +1,32 @@
+
+{
+  "manifest_version": 3,
+  "name": "Notion AutoLang",
+  "version": "0.1.0",
+  "description": "Detect programming languages in Notion code blocks.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://app.notion.com/*",
+    "https://www.notion.so/*"
+  ],
+  "action": {
+    "default_title": "Notion AutoLang",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://app.notion.com/*",
+        "https://www.notion.so/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

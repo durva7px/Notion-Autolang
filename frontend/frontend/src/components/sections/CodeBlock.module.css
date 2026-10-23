@@ -1,0 +1,50 @@
+.block {
+  position: relative;
+  margin: 0 12px;
+  min-height: 299px;
+  padding: 62px 45px 42px 68px;
+  border-radius: 21px;
+  background: var(--color-surface-code);
+}
+
+.toolbar {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+}
+
+.editor {
+  display: block;
+  width: 100%;
+  min-height: 180px;
+  padding: 0;
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  font-family: var(--font-code);
+  font-size: 19px;
+  line-height: 1.09;
+  color: rgba(0, 0, 0, 0.91);
+  tab-size: 2;
+  field-sizing: content;
+}
+
+@media (max-width: 900px) {
+  .block {
+    margin: 0;
+    min-height: 0;
+    padding: 72px 20px 24px;
+    border-radius: 18px;
+  }
+
+  .toolbar {
+    top: 14px;
+    right: 14px;
+  }
+
+  .editor {
+    font-size: 16px;
+    min-height: 180px;
+  }
+}

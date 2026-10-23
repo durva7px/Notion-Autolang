@@ -1,0 +1,25 @@
+{
+  "name": "notion-language-detector",
+  "version": "1.0.0",
+  "private": "true",
+  "description": "Automatic language detection for Notion code blocks",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node scripts/build.mjs --watch",
+    "build": "node scripts/build.mjs",
+    "quickstart": "node scripts/quickstart.mjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^5.27.0",
+    "dotenv": "^18.0.8",
+    "highlight.js": "^11.12.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

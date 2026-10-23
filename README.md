@@ -32,7 +32,7 @@ notion-autolang/
 - **Database:** Supabase (Postgres)
 - **Frontend:** React, Vite, CSS Modules
 - **Extension:** Chrome Manifest V3
-- **Language detection:** being evaluated (highlight.js today)
+- **Language detection:** being evaluated (highlight.js for v1, flourite (testing))
 
 ## Getting started
 
@@ -72,10 +72,10 @@ To load the extension, open `chrome://extensions`, turn on **Developer mode**, c
 ## Roadmap
 
 - [x] Landing page design
-- [ ] Notion OAuth sign-in
-- [ ] Fetch code blocks for a page
-- [ ] Language prediction with confidence scores
-- [ ] Update block languages in Notion
+- [x] Notion OAuth sign-in
+- [x] Fetch code blocks for a page
+- [x] Language prediction with confidence scores
+- [x] Update block languages in Notion
 - [ ] Activity log in Supabase and in the extension
 - [ ] Deploy the backend and landing page
 - [ ] Publish the extension on the Chrome Web Store

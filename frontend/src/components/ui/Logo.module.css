@@ -1,0 +1,28 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.mark {
+  width: 43px;
+  height: 43px;
+  flex: none;
+}
+
+.wordmark {
+  font-size: 21px;
+  line-height: 0.95;
+  color: var(--color-ink);
+}
+
+@media (max-width: 900px) {
+  .mark {
+    width: 36px;
+    height: 36px;
+  }
+
+  .wordmark {
+    font-size: 18px;
+  }
+}

@@ -1,0 +1,50 @@
+.pill {
+  --pill-fill: var(--gradient-pill-dark);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 18px;
+  border: 1.5px solid transparent;
+  border-radius: 750px;
+  background:
+    var(--pill-fill) padding-box,
+    var(--gradient-pill-border) border-box;
+  box-shadow: var(--shadow-pill);
+  font-size: 17px;
+  white-space: nowrap;
+  transition: transform var(--motion-duration-fast) var(--motion-ease);
+}
+
+.slate {
+  --pill-fill: var(--gradient-pill-slate);
+}
+
+a.pill:hover {
+  transform: translateY(-1px);
+}
+
+.icon {
+  width: 17px;
+  height: 17px;
+}
+
+.label {
+  background: var(--gradient-pill-text);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.arrow {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 900px) {
+  .pill {
+    font-size: 15px;
+    height: 34px;
+    padding: 0 14px;
+  }
+}

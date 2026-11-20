@@ -1,0 +1,55 @@
+.header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 34px 42px 0 27px;
+}
+
+.nav {
+  display: flex;
+  gap: 33px;
+  margin-left: 45px; /* the design sits the nav slightly right of center */
+}
+
+.link {
+  font-size: 21px;
+  color: var(--color-ink);
+  transition: color var(--motion-duration-fast) var(--motion-ease);
+}
+
+.link:hover {
+  color: var(--color-accent-magenta);
+}
+
+.account {
+  justify-self: end;
+  align-self: start;
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .header {
+    grid-template-columns: 1fr auto;
+    row-gap: 20px;
+    padding: 20px var(--page-gutter) 0;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: center;
+    gap: 24px;
+    margin-left: 0;
+  }
+
+  .link {
+    font-size: 18px;
+  }
+
+  .account {
+    align-self: center;
+    margin-top: 0;
+  }
+}

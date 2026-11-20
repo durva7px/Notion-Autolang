@@ -1,0 +1,45 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18em;
+  white-space: nowrap;
+}
+
+.word {
+  font-family: var(--font-pixel);
+  font-weight: 400;
+  font-size: 1.3em;
+  line-height: 0.8;
+  color: var(--color-accent-amber);
+}
+
+.caret {
+  width: 0.07em;
+  height: 0.8em;
+  background: var(--color-ink-muted);
+}
+
+.blink {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink {
+    animation: none;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

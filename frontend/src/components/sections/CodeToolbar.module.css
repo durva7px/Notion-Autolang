@@ -1,0 +1,83 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  height: 52px;
+  padding: 0 21px 0 14px;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: var(--shadow-toolbar);
+}
+
+.toolbar button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.language {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  font-size: 16px;
+  color: rgba(41, 41, 41, 0.66);
+}
+
+.chevron {
+  width: 26px;
+  height: 26px;
+  opacity: 0.44;
+}
+
+.separator {
+  width: 1px;
+  height: 23px;
+  background: rgba(41, 41, 41, 0.66);
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.iconButton img {
+  width: 26px;
+  height: 26px;
+  opacity: 0.44;
+}
+
+.copy {
+  transform: rotate(180deg);
+}
+
+.more {
+  display: flex;
+  gap: 5px;
+  margin-left: 3px;
+}
+
+.more span {
+  width: 2.5px;
+  height: 2.5px;
+  background: rgba(41, 41, 41, 0.66);
+}
+
+@media (max-width: 900px) {
+  .toolbar {
+    height: 44px;
+    gap: 6px;
+    padding: 0 14px 0 8px;
+  }
+
+  .language {
+    font-size: 15px;
+  }
+
+  .chevron,
+  .iconButton img {
+    width: 20px;
+    height: 20px;
+  }
+}

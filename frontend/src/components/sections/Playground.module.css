@@ -1,0 +1,24 @@
+.cursor {
+  position: absolute;
+  top: -32px;
+  right: -83px;
+}
+
+.hint {
+  margin: 11px 0 0 27px;
+  font-family: var(--font-mono);
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-faint);
+}
+
+@media (max-width: 900px) {
+  .cursor {
+    display: none;
+  }
+
+  .hint {
+    margin-left: 4px;
+    font-size: 15px;
+  }
+}

@@ -1,4 +1,6 @@
-import { detectLanguage } from "./language-detector.js";
+import { createHash } from "node:crypto";
+
+import { detectLanguage, detectLanguageWithConfidence } from "./language-detector.js";
 
 const SNIPPET_LENGTH = 300;
 const MAX_DEPTH = 10;
@@ -38,8 +40,16 @@ async function collectCodeBlocks(notion, blockId, depth = 0) {
   return found;
 }
 
+function codeText(block) {
+  return block.code.rich_text.map(item => item.plain_text).join("");
+}
+
+function hashCode(code) {
+  return createHash("sha256").update(code).digest("hex");
+}
+
 function analyse(block) {
-  const code = block.code.rich_text.map(item => item.plain_text).join("");
+  const code = codeText(block);
   const currentLanguage = block.code.language;
   const suggestedLanguage = detectLanguage(code);
   return {
@@ -87,5 +97,68 @@ export async function applyLanguageChanges(notion, pageId, blockIds) {
       results.push({ blockId, status: "failed", language, error: error.message });
     }
   }
+  return results;
+}
+
+/**
+ * Keeps a page's code-block languages up to date. For each code block:
+ * - manual:          the user picked a language by hand at some point; never touched again
+ * - unchanged:       same code as last time; nothing to do
+ * - low_confidence:  detection isn't sure enough (or found nothing); left alone
+ * - already_correct: the block already has the detected language
+ * - updated:         language set on Notion
+ * - failed:          Notion refused the update; retried on the next sync
+ * Any language change AutoLang didn't make counts as the user's choice.
+ * Only the code text is hashed, so AutoLang's own language change doesn't
+ * count as an edit and can't trigger another update.
+ */
+export async function syncPage(notion, pageId, { blockStates, confidenceThreshold }) {
+  const results = [];
+
+  for (const block of await collectCodeBlocks(notion, pageId)) {
+    const blockId = block.id;
+    const hash = hashCode(codeText(block));
+    const currentLanguage = block.code.language;
+    const previous = await blockStates.get(blockId);
+
+    const userChangedLanguage =
+      previous?.manual ||
+      (previous?.language != null && currentLanguage !== previous.language);
+    if (userChangedLanguage) {
+      await blockStates.set(blockId, { hash, language: previous.language, manual: true });
+      results.push({ blockId, status: "manual", language: currentLanguage });
+      continue;
+    }
+
+    if (previous?.hash === hash) {
+      results.push({ blockId, status: "unchanged", language: currentLanguage });
+      continue;
+    }
+
+    const { language, confidence } = detectLanguageWithConfidence(codeText(block));
+
+    if (!language || confidence < confidenceThreshold) {
+      // Remember the language as it is now, so a later hand-picked one stands out.
+      await blockStates.set(blockId, { hash, language: currentLanguage, manual: false });
+      results.push({ blockId, status: "low_confidence", language, confidence });
+      continue;
+    }
+
+    if (language === currentLanguage) {
+      await blockStates.set(blockId, { hash, language, manual: false });
+      results.push({ blockId, status: "already_correct", language, confidence });
+      continue;
+    }
+
+    try {
+      await notion.blocks.update({ block_id: blockId, code: { language } });
+      await blockStates.set(blockId, { hash, language, manual: false });
+      results.push({ blockId, status: "updated", language, confidence });
+    } catch (error) {
+      // Nothing saved, so the next sync tries again.
+      results.push({ blockId, status: "failed", language, confidence, error: error.message });
+    }
+  }
+
   return results;
 }

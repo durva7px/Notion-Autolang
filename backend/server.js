@@ -29,7 +29,11 @@ const config = {
     .map(url => url.trim())
     .filter(Boolean)
     .map(url => new URL(url).origin),
-  secureCookies: process.env.NODE_ENV === "production"
+  secureCookies: process.env.NODE_ENV === "production",
+  // 0–1; blank uses the app default.
+  confidenceThreshold: process.env.CONFIDENCE_THRESHOLD
+    ? Number(process.env.CONFIDENCE_THRESHOLD)
+    : undefined
 };
 
 const PORT = process.env.PORT || 3000;

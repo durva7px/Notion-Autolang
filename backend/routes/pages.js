@@ -1,11 +1,11 @@
 import express from "express";
 
-import { previewPage, applyLanguageChanges } from "../services/processor.js";
+import { previewPage, applyLanguageChanges, syncPage } from "../services/processor.js";
 
 const BLOCK_ID_PATTERN = /^[0-9a-f-]{32,36}$/i;
 const MAX_BLOCKS_PER_APPLY = 100;
 
-export function createPagesRouter({ createNotionClient }) {
+export function createPagesRouter({ createNotionClient, blockStates, confidenceThreshold }) {
   const router = express.Router();
 
   // Every /pages route needs an authorized Notion connection.
@@ -70,6 +70,23 @@ export function createPagesRouter({ createNotionClient }) {
       res.json({ results });
     } catch (error) {
       sendNotionError(res, error, "Failed to apply changes");
+    }
+  });
+
+  // Called by the extension when code blocks change: sets the language of new
+  // and edited blocks it is confident about, and leaves everything else alone.
+  router.post("/:pageId/sync", async (req, res) => {
+    const { pageId } = req.params;
+    if (!BLOCK_ID_PATTERN.test(pageId)) {
+      return res.status(400).json({ error: "Invalid page id" });
+    }
+
+    try {
+      await req.notion.pages.retrieve({ page_id: pageId });
+      const results = await syncPage(req.notion, pageId, { blockStates, confidenceThreshold });
+      res.json({ pageId, results });
+    } catch (error) {
+      sendNotionError(res, error, "Failed to sync page");
     }
   });
 

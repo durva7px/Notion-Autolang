@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   detectLanguage,
+  detectLanguageWithConfidence,
   detectLanguageWithHighlight
 } from "../services/language-detector.js";
 
@@ -61,5 +62,28 @@ describe("detectLanguageWithHighlight (comparison only)", () => {
 
   it("returns null for empty code", () => {
     expect(detectLanguageWithHighlight("")).toBeNull();
+  });
+});
+
+describe("detectLanguageWithConfidence (used by auto-sync)", () => {
+  it("returns the same language as detectLanguage, with a confidence between 0 and 1", () => {
+    for (const code of Object.values(SAMPLES)) {
+      const { language, confidence } = detectLanguageWithConfidence(code);
+      expect(language).toBe(detectLanguage(code));
+      expect(confidence).toBeGreaterThan(0);
+      expect(confidence).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("is more confident about a full snippet than a one-liner", () => {
+    const full = detectLanguageWithConfidence(SAMPLES.python);
+    const oneLiner = detectLanguageWithConfidence("x = 1");
+
+    expect(full.confidence).toBeGreaterThan(oneLiner.confidence);
+  });
+
+  it("has zero confidence when there is no language", () => {
+    expect(detectLanguageWithConfidence("")).toEqual({ language: null, confidence: 0 });
+    expect(detectLanguageWithConfidence("hello there")).toEqual({ language: null, confidence: 0 });
   });
 });

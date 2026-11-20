@@ -52,6 +52,33 @@ export function detectLanguage(code) {
   return language === "Unknown" ? null : toNotionLanguage(language);
 }
 
+// Damps confidence for snippets with little evidence: flourite scores are raw
+// points, so a one-liner scoring 2 shouldn't count as much as a snippet scoring 9.
+const EVIDENCE_DAMPING = 2;
+
+/**
+ * Like detectLanguage, plus a 0–1 confidence: how far the winning language's
+ * flourite score is ahead of the runner-up, damped for small scores.
+ */
+export function detectLanguageWithConfidence(code) {
+  const none = { language: null, confidence: 0 };
+  if (typeof code !== "string" || code.trim() === "") return none;
+
+  const { language: detected, statistics } = flourite(code, { noUnknown: false });
+  const language = detected === "Unknown" ? null : toNotionLanguage(detected);
+  if (!language) return none;
+
+  const top = statistics[detected] ?? 0;
+  const runnerUp = Math.max(
+    0,
+    ...Object.entries(statistics)
+      .filter(([name]) => name !== detected && name !== "Unknown")
+      .map(([, score]) => score)
+  );
+  const confidence = Math.max(0, top - runnerUp) / (top + EVIDENCE_DAMPING);
+  return { language, confidence: Math.round(confidence * 100) / 100 };
+}
+
 // Restrict highlight.js to languages Notion supports; otherwise it happily
 // answers "dns" or "routeros" for ordinary Python and JavaScript.
 const HIGHLIGHT_SUBSET = hljs

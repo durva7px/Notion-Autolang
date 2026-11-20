@@ -1,13 +1,13 @@
 # Tests
 
-Backend and frontend tests. Backend tests run from `backend/`:
+Backend, frontend and extension tests. Backend tests run from `backend/`:
 
 ```bash
 npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 61 tests, 8 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 82 tests, 10 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 21 tests, 3 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -16,9 +16,11 @@ We agreed to test at three seams only. Each is a public interface; tests never r
 | Seam | What's real | What's faked |
 |---|---|---|
 | **HTTP API** (`createApp`) | Express, sessions, cookies, routing, HTML | Notion's token endpoint (injected `fetch`) and the Notion SDK client (injected `createNotionClient`) |
-| **Language detection** (`detectLanguage`, `detectLanguageWithHighlight`) | flourite and highlight.js | nothing |
+| **Language detection** (`detectLanguage`, `detectLanguageWithConfidence`, `detectLanguageWithHighlight`) | flourite and highlight.js | nothing |
 | **Page processor** (`previewPage`, `applyLanguageChanges`) | detection, pagination, nesting | the Notion SDK client (`tests/fake-notion.js`) |
+| **Block state store** (`get`, `set`) | the in-memory store | nothing |
 | **Website** (`<App />` in `frontend/`, rendered for a given URL) | React components, routing on the query string | nothing (jsdom stands in for the browser; `VITE_API_URL` is stubbed) |
+| **Extension modules** (`notionPage`, `syncScheduler`, `syncClient` in `extension/src/`) | URL parsing, DOM checks, timing logic | timers (vitest fake timers), `fetch`, the DOM (jsdom) |
 
 Plus one **smoke test** that boots `server.js` in plain Node, because vitest's module loader hides ESM/CommonJS import errors that crash the real server.
 
@@ -116,6 +118,9 @@ Expected values are hand-labelled snippets, not recomputed by the code under tes
 | recognises {javascript, python, c++, sql, go} and returns Notion's name for it | flourite's names are mapped to Notion's code-block language names (`Javascript` → `javascript`, `C++` → `c++`, …). |
 | returns null for empty code so the block is left alone | `""` and whitespace give `null`. |
 | returns null when it can't tell what the code is | Prose gives `null` (flourite's `Unknown`), never a wrong guess. |
+| (confidence) returns the same language as detectLanguage, with a confidence between 0 and 1 | Every sample: same language as `detectLanguage`, confidence in (0, 1]. |
+| (confidence) is more confident about a full snippet than a one-liner | The Python sample beats `x = 1`. Confidence is the winner's flourite score minus the runner-up's, over the winner's score + 2. |
+| (confidence) has zero confidence when there is no language | Empty code and prose give `{ language: null, confidence: 0 }`. |
 | (highlight.js) returns a Notion language name for recognisable code | Python sample gives `python`. |
 | (highlight.js) returns null for empty code | `""` gives `null`. |
 
@@ -138,6 +143,38 @@ Expected values are hand-labelled snippets, not recomputed by the code under tes
 | refuses to touch blocks that aren't code blocks on this page | An unknown ID gives `not_found` and no update. |
 | skips blocks that need no change | Already-correct and unrecognised blocks give `skipped`. |
 | reports a failed update without stopping the rest | One failure gives `failed` with an error message, and later blocks still update. |
+
+## `tests/block-state-store.test.js`: block state store
+
+What AutoLang remembers per code block: `{ hash, language, manual }`. The in-memory store is used locally and in tests; a DynamoDB store with the same `get`/`set` interface comes with Lambda.
+
+| Test | Checks |
+|---|---|
+| returns null for a block it has never seen | Unknown ids give `null`. |
+| returns what was saved for a block | `set` then `get` round-trips. |
+| replaces the previous state | A second `set` overwrites. |
+| hands out copies, so callers can't change stored state by accident | Mutating the saved or returned object doesn't change the store. |
+
+## `tests/sync.test.js`: `POST /pages/:pageId/sync` (auto-sync for the extension)
+
+Each test syncs a fake Notion page, then changes it the way a user would (`edit(block, { code, language })`) and syncs again. Default confidence threshold 0.4 (`CONFIDENCE_THRESHOLD`).
+
+| Test | Checks |
+|---|---|
+| requires a connected Notion workspace | 401 without OAuth. |
+| rejects a malformed page id | 400. |
+| sets the language of a new code block it is confident about | `updated` with language and confidence; `blocks.update` called. |
+| only looks at code blocks | Paragraphs aren't in the results. |
+| leaves a block alone when its code hasn't changed since the last sync | Second sync gives `unchanged`; AutoLang's own language change isn't an edit (only code text is hashed), so no loop. |
+| detects again when a block's code changes | Python changed to Go gives `updated` to `go`. |
+| doesn't change a block when it isn't confident enough | Threshold 0.99 gives `low_confidence`, no update. |
+| doesn't change a block when it can't tell the language | Prose gives `low_confidence` with `language: null`. |
+| doesn't call Notion when the language is already right | `already_correct`, no update. |
+| stops changing a block once the user picks a language by hand | After the user switches AutoLang's `python` to `ruby`, the block stays `manual`, even when its code later looks like Go. |
+| treats a language the user changed away from a correct one as manual | Same, starting from a block that was already correct. |
+| notices a hand-picked language even before AutoLang has set one | Too short to detect, then the user picks Ruby, then it looks like Python: stays `manual`. |
+| tries again next time when Notion fails to update a block | `failed` with Notion's error, then `updated` on the next sync. |
+| returns Notion's error when the page can't be read | 404 passes through. |
 
 ## `tests/pages.test.js`: `/pages` API
 
@@ -180,6 +217,36 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 | keeps Notion's current app.notion.com links | `https://app.notion.com/p/…` is kept as the button's link. |
 | rejects look-alike hosts | `https://notion.com.evil.example/…` becomes `https://www.notion.so/`. |
 
+## Extension: `extension/tests/`
+
+Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `content.js` and `background.js` are thin Chrome glue and are checked by hand (see "Not covered").
+
+### `notionPage.test.js`
+| Test | Checks |
+|---|---|
+| reads the page id from {notion.so title, workspace path, app.notion.com/p/, bare id, #block link, ?v= view} | All give the dashed API form of the id in the path. |
+| uses the page open in a side peek | `?p=<id>` wins over the page behind it. |
+| returns null when no page is open | `/`, `/login` and invalid URLs give `null`. |
+| is true when text inside a code block changes | A `characterData` change in `.notion-code-block`. |
+| is true when a code block is added to the page | An added subtree containing `.notion-code-block`. |
+| is false for changes elsewhere on the page | Text blocks are ignored. |
+
+### `syncScheduler.test.js` (fake timers)
+| Test | Checks |
+|---|---|
+| syncs a page once the user stops changing it | Nothing before 2 s of quiet; one sync at 2 s. |
+| waits for a quiet moment: each change restarts the wait | Five quick changes give one sync. |
+| handles pages independently | Two pages, two syncs. |
+| never runs two syncs for the same page at once, and runs one more after changes during a sync | Changes during a sync queue exactly one follow-up. |
+| keeps working after a sync fails | `onError` gets the error; later changes still sync. |
+
+### `syncClient.test.js`
+| Test | Checks |
+|---|---|
+| posts to the page's sync endpoint with the session cookie and returns the results | `POST <api>/pages/<id>/sync` with `credentials: 'include'`. |
+| explains when the user still needs to connect Notion | 401 becomes "Connect your Notion workspace first: open …/auth/notion". |
+| passes on the backend's error otherwise | e.g. `404: Could not find page`. |
+
 ---
 
 ## Not covered by automated tests
@@ -187,3 +254,5 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 - **The real Notion OAuth round trip.** It needs a person to sign in on notion.com. To check it by hand, run `npm start`, open `http://localhost:3000`, click **Connect Notion**, approve, and land on the connected page.
 - **`services/notion.js`** is a one-line wrapper around the SDK `Client`. The smoke test covers that it loads in Node.
 - **Detector accuracy.** That's measured, not asserted: `npm run compare-detectors` (built-in samples) or `npm run compare-detectors -- notion` (blocks on `NOTION_PAGE_ID`).
+- **The extension inside Chrome on a real Notion page** (`manifest.json`, `content.js`, `background.js`, and that `.notion-code-block` is still Notion's class). Check by hand with the steps in `extension/README.md`.
+- **The confidence threshold's value.** 0.4 is a starting point. Tune it by running the detectors over your own blocks.

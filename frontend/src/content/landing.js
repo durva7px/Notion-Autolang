@@ -79,13 +79,5 @@ export const demo = {
 
 export const playground = {
   //hint: 'Try writing any code snippet in the code block',
-  sample: `def calculate_average(numbers):
-
-  total = sum(numbers)
-  count = len(numbers)
-
-  if count == 0:
-    return 0
-
-  return total / count`,
+  sample: `// write your code here and AutoLang will detect the language`,
 }

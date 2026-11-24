@@ -2,6 +2,10 @@
 
 Sets the language of Notion code blocks automatically while you write.
 
+[![AutoLang demo: writing a developer guide in Notion while each code block's language is set automatically](frontend/src/assets/demo/autolang-demo-poster.jpg)](frontend/src/assets/demo/autolang-demo.mp4)
+
+▶ [Watch the demo](frontend/src/assets/demo/autolang-demo.mp4) (55 s, Notion dark mode). A light-mode version plays on the website.
+
 The repo is an npm workspace with three parts:
 
 | Folder | What it is |

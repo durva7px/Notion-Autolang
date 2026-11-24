@@ -4,7 +4,7 @@ import styles from './CodeBlock.module.css'
 
 /**
  * A Notion-style code block. Editable; `language` is shown in the toolbar.
- * Detection is not wired up yet: `onCodeChange` is the hook for it.
+ * `onCodeChange` gets the new code on every edit.
  */
 export default function CodeBlock({ initialCode = '', language, onCodeChange, className = '', ...props }) {
   const [code, setCode] = useState(initialCode)

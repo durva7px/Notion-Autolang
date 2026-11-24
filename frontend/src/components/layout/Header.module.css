@@ -1,10 +1,33 @@
+/* Full-width sticky bar; the grid inside keeps the page width. */
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: box-shadow var(--motion-duration) var(--motion-ease);
+}
+
+.bar[data-scrolled='true'] {
+  box-shadow:
+    0 1px 0 var(--color-card-border),
+    0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
 .header {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   max-width: var(--page-max);
   margin: 0 auto;
-  padding: 34px 42px 0 27px;
+  padding: 34px 42px 14px 27px;
+  transition: padding var(--motion-duration) var(--motion-ease);
+}
+
+/* Slimmer once the page scrolls, so it takes less room. */
+.bar[data-scrolled='true'] .header {
+  padding-top: 14px;
 }
 
 .nav {
@@ -23,17 +46,19 @@
   color: var(--color-accent-magenta);
 }
 
-.account {
+.end {
   justify-self: end;
-  align-self: start;
-  margin-top: 4px;
 }
 
 @media (max-width: 900px) {
   .header {
     grid-template-columns: 1fr auto;
     row-gap: 20px;
-    padding: 20px var(--page-gutter) 0;
+    padding: 16px var(--page-gutter) 14px;
+  }
+
+  .bar[data-scrolled='true'] .header {
+    padding-top: 10px;
   }
 
   .nav {
@@ -48,8 +73,11 @@
     font-size: 18px;
   }
 
-  .account {
-    align-self: center;
-    margin-top: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .header {
+    transition: none;
   }
 }

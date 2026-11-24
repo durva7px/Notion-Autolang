@@ -6,6 +6,19 @@
 
 html {
   scroll-behavior: smooth;
+  /* Height of the sticky header once scrolled, plus breathing room. */
+  --header-offset: 88px;
+}
+
+@media (max-width: 900px) {
+  html {
+    --header-offset: 128px;
+  }
+}
+
+/* Jumping to #demo, #playground or a FAQ question lands below the sticky header. */
+[id] {
+  scroll-margin-top: var(--header-offset);
 }
 
 body {

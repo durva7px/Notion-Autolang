@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 54 tests, 6 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 69 tests, 5 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -302,7 +302,7 @@ Renders `<Playground />` with `fetch` stubbed (and a short or fake-timer debounc
 
 ## Frontend: `frontend/src/Navigation.test.jsx`
 
-Header and footer, checked on both `/` and `/faq`. `fetch` is stubbed because the landing page's playground calls the backend.
+Header and footer, checked on `/`, `/faq` and `/privacy`. `fetch` is stubbed because the landing page's playground calls the backend.
 
 | Test | Checks |
 |---|---|
@@ -314,6 +314,7 @@ Header and footer, checked on both `/` and `/faq`. `fetch` is stubbed because th
 | scrolls to the section named in the link, e.g. /#demo from the FAQ | Opening `/#demo` scrolls the demo section into view once the page has rendered. |
 | links to the GitHub repository in a new tab | **GitHub Repository** goes to `github.com/durva7px/Notion-Autolang` with `target=_blank` and `rel=noopener`. |
 | links Developer Connect to the developer's GitHub profile in a new tab | **Developer Connect** goes to `github.com/durva7px`, same attributes. |
+| links to the privacy policy in the same tab | **Privacy policy** goes to `/privacy`, with no `target`. |
 | puts the two links on either side of the copyright | Document order: repository, copyright, profile. |
 | drops Help, Support and Contact Us | None of these links are in the footer. |
 
@@ -327,6 +328,21 @@ Header and footer, checked on both `/` and `/faq`. `fetch` is stubbed because th
 | shows an answer when its question is opened | Clicking a question opens its `<details>`. |
 | gives every question a link-able anchor | Each question has a unique `id`, so `/faq#store-code` links straight to it. |
 | sets the browser tab title | The tab reads "FAQ · Notion AutoLang". |
+
+## Frontend: `frontend/src/pages/PrivacyPage.test.jsx`
+
+The policy the Chrome Web Store listing links to. Its text lives in `content/privacy.js` and must describe what the code does.
+
+| Test | Checks |
+|---|---|
+| has its own heading and not the landing page | `/privacy` shows "Privacy policy" and not How to Use. |
+| also opens with a trailing slash | `/privacy/` gives the same page. |
+| says when it took effect | "Effective 24 November 2026". |
+| explains what the extension sends and what the backend keeps | Mentions the page ID, the access token, 7 days, SHA-256 and the Playground. |
+| names who processes the data | Notion, AWS and Vercel. |
+| makes the Chrome Web Store commitments: no selling, Limited Use | "not sell", the Chrome Web Store User Data Policy and Limited Use. |
+| tells people how to delete their data and how to get in touch | Mentions Disconnect; links to the repository's GitHub issues. |
+| sets the browser tab title | The tab reads "Privacy policy · Notion AutoLang". |
 
 ## Extension: `extension/tests/`
 
@@ -404,6 +420,19 @@ Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `
 
 To look at every popup state at once: `npm run preview:popup` in `extension/`, then open `http://localhost:5180/dev/popup-preview.html`.
 
+### `buildStore.test.js` (`scripts/build-store.js`, `npm run build:store`)
+| Test | Checks |
+|---|---|
+| drops local development hosts from host_permissions | `localhost` and `127.0.0.1` entries are removed; Notion and the API stay. |
+| leaves everything else as it is, and the original untouched | Only `host_permissions` differs, and the input manifest isn't changed. |
+| passes a build that is ready for the store | No problems reported. |
+| refuses a build that still talks to a local backend | `API_URL` on localhost is reported. |
+| refuses a build whose backend is missing from host_permissions | The API's origin must be in `host_permissions`. |
+| refuses a build without 16, 48 and 128 px icons | Missing icon sizes are reported. |
+| refuses a build whose icon files are missing | An icon path with no file is reported by name. |
+| ships the manifest, src/ and icons/ only | Tests, dev pages, node_modules, package.json, README, scripts and dist are left out. |
+| is a zip Chrome can read, with each file at its own path and the manifest at the root | The test reads the zip back through its central directory and gets the same files and contents. |
+
 ---
 
 ## Not covered by automated tests
@@ -412,5 +441,6 @@ To look at every popup state at once: `npm run preview:popup` in `extension/`, t
 - **Real AWS.** Tests use a fake DynamoDB and hand-built API Gateway events. After deploying, check `GET <invoke-url>/health`, then sign in and sync a page; errors show in the function's CloudWatch log group. The table key names (`id`, `blockId`) and the TTL attribute (`expires`) must match what's created in the console.
 - **`services/notion.js`** is a one-line wrapper around the SDK `Client`. The smoke test covers that it loads in Node.
 - **Detector accuracy.** That's measured, not asserted: `npm run compare-detectors` (built-in samples) or `npm run compare-detectors -- notion` (blocks on `NOTION_PAGE_ID`).
+- **The store zip in Chrome and the Web Store.** The test reads the zip back itself; Windows' `tar.exe -tf dist/<zip>` lists it too. Load it in Chrome by unzipping it and using **Load unpacked** on the folder before uploading.
 - **The extension inside Chrome on a real Notion page** (`manifest.json`, `content.js`, `background.js`, `popup.js`, the badge, adding itself to tabs that were already open, and that `.notion-code-block` is still Notion's class). Check by hand with the steps in `extension/README.md`.
 - **The confidence threshold's value.** 0.4 is a starting point. Tune it by running the detectors over your own blocks.

@@ -33,9 +33,20 @@ After editing the extension's files, click the reload icon on its card.
 To see every popup state at once without loading the extension:
 `npm run preview:popup`, then open <http://localhost:5180/dev/popup-preview.html>.
 
+## Publish to the Chrome Web Store
+
+1. Set `API_URL` in `src/config.js` to the deployed backend, and raise `version` in `manifest.json` (every upload needs a higher version).
+2. `npm run build:store` in this folder. It writes `dist/notion-autolang-<version>.zip` with `manifest.json`, `src/` and `icons/` only, and drops `localhost` from `host_permissions` in the zipped manifest. It stops with a list of problems if `API_URL` is still local, the backend isn't in `host_permissions`, or icons are missing.
+3. Optional: unzip it and use **Load unpacked** on the folder to try exactly what you'll upload.
+4. Upload the zip in the Chrome Web Store Developer Dashboard. Privacy policy URL: `https://notion-autolang.vercel.app/privacy`.
+
+`dist/` and `*.zip` are git-ignored.
+
 ## Files
 
-- `manifest.json`: runs `src/content.js` on Notion; adds the popup; lets the extension call the local backend.
+- `manifest.json`: runs `src/content.js` on Notion; adds the popup and icons; lets the extension call the deployed backend and, in development, `localhost:3000`.
+- `icons/`: the toolbar and store icons. `icon.svg` is the source; the PNGs are rendered from it.
+- `scripts/build-store.js`: builds the Chrome Web Store zip (`npm run build:store`).
 - `src/content.js`: watches the page and reports code-block changes.
 - `src/background.js`: waits for a pause, then calls the backend; keeps the badge current; handles Connect/Disconnect.
 - `src/popup.html`, `popup.js`, `popup.css`: the popup. Drawing is in `popupView.js`.

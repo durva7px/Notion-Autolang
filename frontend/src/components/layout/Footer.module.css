@@ -18,9 +18,27 @@
   justify-self: end;
 }
 
+.middle {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
 .copyright {
   margin: 0;
   text-align: center;
+}
+
+.privacy {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--color-ink-muted);
+  border-bottom: 1px solid currentColor;
+}
+
+.privacy:hover,
+.privacy:focus-visible {
+  color: var(--color-accent-magenta);
 }
 
 @media (max-width: 900px) {
@@ -37,7 +55,7 @@
     justify-self: center;
   }
 
-  .copyright {
+  .middle {
     order: 3;
     margin-top: 16px;
   }

@@ -1,12 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Notion AutoLang",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Sets the language of Notion code blocks automatically as you write.",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Notion AutoLang"
+  },
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
   },
+  "permissions": ["storage", "scripting"],
   "content_scripts": [
     {
       "matches": ["https://www.notion.so/*", "https://*.notion.so/*", "https://app.notion.com/*"],
@@ -20,5 +25,10 @@
       "matches": ["https://www.notion.so/*", "https://*.notion.so/*", "https://app.notion.com/*"]
     }
   ],
-  "host_permissions": ["http://localhost:3000/*"]
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://www.notion.so/*",
+    "https://*.notion.so/*",
+    "https://app.notion.com/*"
+  ]
 }

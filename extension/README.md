@@ -9,23 +9,38 @@ picked by hand.
 ## Try it locally (Chrome)
 
 1. Start the backend: `npm start` in `backend/` (runs on `http://localhost:3000`).
-2. In **the same Chrome**, open `http://localhost:3000/auth/notion` and approve.
-   The extension uses this sign-in's cookie.
-3. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**
+2. Open `chrome://extensions`, turn on **Developer mode**, click **Load unpacked**
    and pick this `extension/` folder.
+3. Click the extension's icon, then **Connect Notion**, and approve.
 4. Open a Notion page you shared with AutoLang, add a code block and type some
    code. About 2 seconds after you stop, its language should change.
 
+## The popup and badge
+
+The popup shows **Connected** (with the workspace and the last sync),
+**Not connected** (with a **Connect Notion** button) or **Backend not running**.
+The icon shows a `!` when something needs you: magenta for "connect" or
+"start the backend", amber for "the last sync failed". Hover it for the reason.
+
+Pages that were already open keep working:
+- Installing or reloading the extension adds it to open Notion tabs.
+- Connecting syncs every open Notion page straight away.
+
 To see what it's doing, click **service worker** on the extension's card in
 `chrome://extensions`: synced changes and errors are logged as `[AutoLang] …`.
-After editing the extension's files, click the reload icon on its card and
-refresh the Notion tab.
+After editing the extension's files, click the reload icon on its card.
+
+To see every popup state at once without loading the extension:
+`npm run preview:popup`, then open <http://localhost:5180/dev/popup-preview.html>.
 
 ## Files
 
-- `manifest.json`: runs `src/content.js` on Notion; lets the extension call the local backend.
+- `manifest.json`: runs `src/content.js` on Notion; adds the popup; lets the extension call the local backend.
 - `src/content.js`: watches the page and reports code-block changes.
-- `src/background.js`: waits for a pause, then calls the backend.
+- `src/background.js`: waits for a pause, then calls the backend; keeps the badge current; handles Connect/Disconnect.
+- `src/popup.html`, `popup.js`, `popup.css`: the popup. Drawing is in `popupView.js`.
+- `src/connection.js`: sign-in status, connect address, disconnect.
+- `src/status.js`: badge rules, and re-syncing open pages after connecting.
 - `src/notionPage.js`: page id from the URL, "did a code block change?". Notion's markup lives here only.
 - `src/syncScheduler.js`: the wait-for-a-pause, one-sync-at-a-time logic.
 - `src/syncClient.js`: the request to the backend.

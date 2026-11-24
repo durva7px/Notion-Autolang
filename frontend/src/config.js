@@ -3,7 +3,7 @@
 const LOCAL_API = 'http://localhost:3000'
 
 export function apiUrl() {
-  return import.meta.env.VITE_API_URL || LOCAL_API
+  return import.meta.env.API_URL || LOCAL_API
 }
 
 /** Starts Notion auth on the backend and asks it to return to this site. */

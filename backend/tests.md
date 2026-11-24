@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 82 tests, 10 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 54 tests, 6 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 54 tests, 6 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -18,15 +18,17 @@ We agreed to test at three seams only. Each is a public interface; tests never r
 | **HTTP API** (`createApp`) | Express, sessions, cookies, routing, HTML | Notion's token endpoint (injected `fetch`) and the Notion SDK client (injected `createNotionClient`) |
 | **Language detection** (`detectLanguage`, `detectLanguageWithConfidence`, `detectLanguageWithHighlight`) | flourite and highlight.js | nothing |
 | **Page processor** (`previewPage`, `applyLanguageChanges`) | detection, pagination, nesting | the Notion SDK client (`tests/fake-notion.js`) |
-| **Block state store** (`get`, `set`) | the in-memory store | nothing |
+| **Block state store** (`get`, `set`) | the in-memory store, and the DynamoDB store's requests | DynamoDB (`tests/fake-dynamodb.js`) |
+| **Lambda handler** (`createLambdaHandler` in `lambda.js`) | serverless-express, the Express app, the DynamoDB session and block-state stores | DynamoDB (`tests/fake-dynamodb.js`); events are hand-built API Gateway HTTP API (payload 2.0) events |
 | **Website** (`<App />` in `frontend/`, rendered for a given URL) | React components, routing on the query string | nothing (jsdom stands in for the browser; `VITE_API_URL` is stubbed) |
 | **Extension modules** (`notionPage`, `syncScheduler`, `syncClient`, `connection`, `status`, `popupView` in `extension/src/`) | URL parsing, DOM checks, timing logic, badge and popup rendering | timers (vitest fake timers), `fetch`, `chrome.storage.session` (an in-memory store), the DOM (jsdom) |
 
-Plus one **smoke test** that boots `server.js` in plain Node, because vitest's module loader hides ESM/CommonJS import errors that crash the real server.
+Plus two **smoke tests** in plain Node, one booting `server.js` and one loading `lambda.js`, because vitest's module loader hides ESM/CommonJS import errors that crash the real server.
 
 ## Test helpers
 
 - `tests/helpers.js`: `buildTestApp(overrides)` builds the app with test config. `fakeTokenEndpoint()` stands in for `fetch` against `https://api.notion.com/v1/oauth/token`. `startOAuth(agent)` begins the flow and returns the `state`. `connectedAgent(app)` returns a supertest agent whose session has finished OAuth.
+- `tests/fake-dynamodb.js`: an in-memory DynamoDB Document Client. It answers the real `GetCommand`, `PutCommand` and `DeleteCommand` objects from `@aws-sdk/lib-dynamodb`, and `items(table)` shows what a table holds. Two stores sharing one fake act like two Lambda instances sharing one table.
 - `tests/fake-notion.js`: an in-memory Notion client (`search`, `pages.retrieve`, `blocks.children.list` with real cursor pagination, `blocks.update`) plus block builders `codeBlock`, `paragraph`, `toggle`.
 
 ---
@@ -146,7 +148,7 @@ Expected values are hand-labelled snippets, not recomputed by the code under tes
 
 ## `tests/block-state-store.test.js`: block state store
 
-What AutoLang remembers per code block: `{ hash, language, manual }`. The in-memory store is used locally and in tests; a DynamoDB store with the same `get`/`set` interface comes with Lambda.
+What AutoLang remembers per code block: `{ hash, language, manual }`. The in-memory store is used locally and in tests; `lambda.js` uses the DynamoDB store, which has the same `get`/`set` interface.
 
 | Test | Checks |
 |---|---|
@@ -154,6 +156,41 @@ What AutoLang remembers per code block: `{ hash, language, manual }`. The in-mem
 | returns what was saved for a block | `set` then `get` round-trips. |
 | replaces the previous state | A second `set` overwrites. |
 | hands out copies, so callers can't change stored state by accident | Mutating the saved or returned object doesn't change the store. |
+
+## `tests/dynamo-block-state-store.test.js`: DynamoDB block state store
+
+The store `lambda.js` uses (`services/dynamo-block-state-store.js`). Table: partition key `blockId`.
+
+| Test | Checks |
+|---|---|
+| returns null for a block it has never seen | Unknown ids give `null`. |
+| returns what was saved for a block | `set` then `get` round-trips. |
+| replaces the previous state | A second `set` overwrites. |
+| keeps blocks apart | Two blocks keep their own state. |
+| shares state between Lambda instances that use the same table | A store built on another instance reads what the first one saved. |
+| stores each block under its blockId key in the configured table | The item is `{ blockId, hash, language, manual }` in the table named in config. |
+
+## `tests/dynamo-session-store.test.js`: DynamoDB session store (through the HTTP API)
+
+`services/dynamo-session-store.js`, plugged into `createApp({ sessionStore })`. Table: partition key `id`, TTL on `expires`. Each test builds app instances that share one fake table, the way Lambda instances share the real one, and replays the session cookie from the OAuth callback.
+
+| Test | Checks |
+|---|---|
+| keeps the Notion connection when the next request reaches another Lambda instance | Sign in on one instance; `GET /auth/status` on another says connected, with the workspace. |
+| forgets the connection everywhere after disconnecting | After `POST /auth/disconnect`, the other instance says not connected and the table is empty. |
+| treats an expired session as logged out, even before DynamoDB's TTL deletes it | With the clock moved 8 days on, the still-stored session gives `connected: false`. |
+| stores an `expires` time in epoch seconds for DynamoDB's TTL to clean up | `expires` is about 7 days from now, in seconds. |
+| does not store anything for visitors who never sign in | `GET /health` writes nothing. |
+
+## `tests/lambda.test.js`: Lambda handler (`lambda.js`)
+
+| Test | Checks |
+|---|---|
+| answers /health for an API Gateway HTTP API request | A payload 2.0 event gives `200 {status:"ok"}`. |
+| keeps sessions in the DynamoDB sessions table | Starting OAuth writes one item to `SESSIONS_TABLE`. |
+| sends a Secure session cookie, since API Gateway only serves HTTPS | The `autolang.sid` cookie in the response is `Secure` and `HttpOnly` without setting `NODE_ENV`. |
+| refuses to start without its settings and names the missing ones | Missing `SESSION_SECRET` and `BLOCK_STATES_TABLE` throws naming both. |
+| loads and answers /health in plain Node | Imports `lambda.js` outside vitest and calls the exported `handler` (ESM/CommonJS guard for serverless-express and the AWS SDK). |
 
 ## `tests/sync.test.js`: `POST /pages/:pageId/sync` (auto-sync for the extension)
 
@@ -372,6 +409,7 @@ To look at every popup state at once: `npm run preview:popup` in `extension/`, t
 ## Not covered by automated tests
 
 - **The real Notion OAuth round trip.** It needs a person to sign in on notion.com. To check it by hand, run `npm start`, open `http://localhost:3000`, click **Connect Notion**, approve, and land on the connected page.
+- **Real AWS.** Tests use a fake DynamoDB and hand-built API Gateway events. After deploying, check `GET <invoke-url>/health`, then sign in and sync a page; errors show in the function's CloudWatch log group. The table key names (`id`, `blockId`) and the TTL attribute (`expires`) must match what's created in the console.
 - **`services/notion.js`** is a one-line wrapper around the SDK `Client`. The smoke test covers that it loads in Node.
 - **Detector accuracy.** That's measured, not asserted: `npm run compare-detectors` (built-in samples) or `npm run compare-detectors -- notion` (blocks on `NOTION_PAGE_ID`).
 - **The extension inside Chrome on a real Notion page** (`manifest.json`, `content.js`, `background.js`, `popup.js`, the badge, adding itself to tabs that were already open, and that `.notion-code-block` is still Notion's class). Check by hand with the steps in `extension/README.md`.

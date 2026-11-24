@@ -14,6 +14,10 @@ export function createDetectRouter({ confidenceThreshold, allowedOrigins = [], r
   const router = express.Router();
   router.use(cors(allowedOrigins));
 
+  router.get("/", (req, res) => {
+    res.json({ message: "Send a POST request with { code: string } to detect the language." });
+  });
+
   router.post("/", limitPerVisitor({ ...DEFAULT_RATE_LIMIT, ...rateLimit }), (req, res) => {
     const code = req.body?.code;
     if (typeof code !== "string") {

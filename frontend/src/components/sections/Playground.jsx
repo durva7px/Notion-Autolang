@@ -78,15 +78,18 @@ export default function Playground({ debounceMs = 600 }) {
       title="AutoLang Playground"
       titleAccessory={<Cursor rotate={-90} className={styles.cursor} />}
     >
-      <CodeBlock
-        initialCode={playground.sample}
-        language={languageLabel(language)}
-        onCodeChange={detectAfterPause}
-      />
-      <p className={styles.status} role="status" data-state={result.state}>
-        {statusText(result)}
-      </p>
-      <p className={styles.hint}>{playground.hint}</p>
+      <figure className={styles.figure}>
+        <CodeBlock
+          initialCode={playground.sample}
+          language={languageLabel(language)}
+          onCodeChange={detectAfterPause}
+        />
+        <figcaption className={styles.caption}>{playground.caption}</figcaption>
+      </figure>
+      {/* Live region around a Notion-style heading 3, so updates are announced. */}
+      <div className={styles.status} role="status" data-state={result.state}>
+        <h3 className={styles.result}>{statusText(result)}</h3>
+      </div>
     </Section>
   )
 }

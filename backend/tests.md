@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 69 tests, 5 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 71 tests, 5 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -290,6 +290,8 @@ Renders `<Playground />` with `fetch` stubbed (and a short or fake-timer debounc
 | Test | Checks |
 |---|---|
 | detects the sample snippet live when the page loads | Starts as Plain Text, POSTs the sample to `<VITE_API_URL>/detect` without cookies, then shows Python and "Detected Python". |
+| captions the code block the way Notion does | The block sits in a `<figure>` whose `<figcaption>` (below the editor) reads "Write your code here and AutoLang will detect the language". |
+| shows the result as a heading 3, inside the live status region | The detection result is an `<h3>` ("Detected Python…") inside `role="status"`, so it's still announced. |
 | needs no extension or Notion sign-in | No `Authorization` header. |
 | re-detects what the visitor types | Typing TypeScript sends the new code and shows TypeScript. |
 | waits for a pause in typing before asking | A burst of edits sends one request, with the last code. |

@@ -80,4 +80,6 @@ export const demo = {
 export const playground = {
   //hint: 'Try writing any code snippet in the code block',
   sample: `// write your code here and AutoLang will detect the language`,
+  // Shown under the block, like a Notion code block caption.
+  caption: 'Write your code here and AutoLang will detect the language',
 }

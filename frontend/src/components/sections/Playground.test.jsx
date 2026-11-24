@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act, within } from '@testing-library/react'
 import Playground from './Playground.jsx'
 import { playground } from '../../content/landing.js'
 import { languageLabel } from '../../lib/detect.js'
@@ -37,6 +37,23 @@ describe('AutoLang Playground', () => {
     expect(JSON.parse(init.body)).toEqual({ code: playground.sample })
     expect(init.credentials).toBe('omit')
     expect(status()).toHaveTextContent(/Detected Python/i)
+  })
+
+  it('captions the code block the way Notion does', () => {
+    render(<Playground debounceMs={0} />)
+    const figure = screen.getByRole('figure')
+    const caption = within(figure).getByText('Write your code here and AutoLang will detect the language')
+
+    expect(caption.tagName).toBe('FIGCAPTION')
+    expect(within(figure).getByRole('textbox', { name: /code snippet/i })).toBeInTheDocument()
+    expect(caption.compareDocumentPosition(editor()) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+  })
+
+  it('shows the result as a heading 3, inside the live status region', async () => {
+    render(<Playground debounceMs={0} />)
+
+    const heading = await within(status()).findByRole('heading', { level: 3, name: /Detected Python/i })
+    expect(heading).toBeInTheDocument()
   })
 
   it('needs no extension or Notion sign-in', async () => {

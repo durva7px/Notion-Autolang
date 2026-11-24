@@ -28,6 +28,9 @@
   --font-sans: 'Instrument Sans', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
   --font-code: 'Ubuntu Mono', ui-monospace, monospace;
+  /* Notion's own UI font stack, for parts that imitate Notion blocks. */
+  --font-notion: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI',
+    Helvetica, 'Apple Color Emoji', Arial, sans-serif;
   --font-pixel: 'Micro 5', var(--font-mono);
   --font-round: 'Comfortaa', var(--font-sans);
 

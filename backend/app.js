@@ -21,6 +21,8 @@ export function createApp({
   fetch = globalThis.fetch,
   createNotionClient = defaultCreateNotionClient,
   blockStates = createMemoryBlockStateStore(),
+  // express-session store; undefined uses its in-memory store (fine for one local process).
+  sessionStore,
   detectRateLimit
 }) {
   const app = express();
@@ -43,6 +45,7 @@ export function createApp({
   app.use(
     session({
       name: SESSION_COOKIE,
+      store: sessionStore,
       secret: config.sessionSecret,
       resave: false,
       saveUninitialized: false,

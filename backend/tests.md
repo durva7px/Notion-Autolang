@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 69 tests, 5 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 96 tests, 6 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -285,20 +285,45 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 
 ## Frontend: `frontend/src/components/sections/Playground.test.jsx`
 
-Renders `<Playground />` with `fetch` stubbed (and a short or fake-timer debounce).
+Renders `<Playground />` with `fetch` stubbed (and a short or fake-timer debounce). The result shows as a popup beside the language label, like the demo video (`[data-popup]`, hidden from screen readers); a visually hidden `role="status"` region announces the same thing.
 
 | Test | Checks |
 |---|---|
-| detects the sample snippet live when the page loads | Starts as Plain Text, POSTs the sample to `<VITE_API_URL>/detect` without cookies, then shows Python and "Detected Python". |
-| needs no extension or Notion sign-in | No `Authorization` header. |
-| re-detects what the visitor types | Typing TypeScript sends the new code and shows TypeScript. |
-| waits for a pause in typing before asking | A burst of edits sends one request, with the last code. |
-| leaves the language alone when it isn't confident, like in Notion | `confident: false` keeps the label and says "not confident enough". |
-| asks for code when the block is empty | `language: null` asks the visitor to type some code. |
-| shows only the answer for the latest code when replies arrive out of order | A slow earlier reply doesn't overwrite a newer one. |
-| says so when AutoLang can't be reached, and keeps the language | A network error shows "can't reach AutoLang". |
-| asks the visitor to slow down when rate limited | 429 shows "too many tries". |
+| starts as an empty Plain Text block with a Python example in a comment as its placeholder | Empty editor; the placeholder has `def greet(name):` and every line starts with `#`; nothing is sent. |
+| captions the code block the way Notion does | The block sits in a `<figure>` whose `<figcaption>` (below the editor) reads "Write your code here and AutoLang will detect the language". |
+| has no separate result text under the block | No `<h3>` result after a detection. |
+| detects what the visitor types and pops up the result, like the demo video | POSTs the code to `<VITE_API_URL>/detect` without cookies or `Authorization`; the label becomes Python; the popup and status say "AutoLang detected Python". |
+| hides the popup the moment the visitor types again | The next keystroke removes it, before the debounce. |
+| lets the popup fade away by itself after a couple of seconds | Gone after 3 s (fake timers). |
+| waits for a pause in typing before asking | Four quick edits give one request, for the last code. |
+| leaves the language alone and shows no popup when it isn't confident, like in Notion | Not confident: label unchanged, no popup, status says "not confident enough". |
+| doesn't ask when the block is emptied, and shows the placeholder again | Clearing the editor sends nothing. |
+| shows only the answer for the latest code when replies arrive out of order | A slow reply for older code doesn't overwrite Go. |
+| pops up a warning when AutoLang can't be reached, and keeps the language | A network error gives an `error` popup ("Can't reach AutoLang") and status; Plain Text stays. |
+| asks the visitor to slow down when rate limited | 429 gives a "too many tries" popup. |
+
+### Language menu
+| Test | Checks |
+|---|---|
+| opens from the language label and lists every language Notion supports | The label has `aria-expanded`; the listbox has one option per Notion language; Plain Text is selected. |
+| switches the language and the placeholder comment to match | Picking JavaScript closes the menu, shows JavaScript, and the placeholder lines start with `//`. |
+| filters the list as the visitor searches | "script" keeps JavaScript, TypeScript and CoffeeScript and drops Python. |
+| picks the first match with Enter and closes with Escape | Enter on "rust" picks Rust; Escape closes without changing it. |
+| still lets AutoLang change a language the visitor picked once they type | Ruby picked, Python typed: the label becomes Python. |
 | shows Notion's language names the way Notion's menu does | `languageLabel` gives TypeScript, JavaScript, C++, C#, SQL, Plain Text, Python, Elixir. |
+
+## Frontend: `frontend/src/lib/placeholder.test.js`
+
+The menu's language list and the placeholder (`lib/placeholder.js`).
+
+| Test | Checks |
+|---|---|
+| lists every language a Notion code block accepts, once each | 90 languages, no duplicates; the same list as the backend's `NOTION_LANGUAGES`. |
+| is a Python example inside a comment | `placeholderFor('python')` has "Write your code here" and the `greet` function, every line starting with `#`. |
+| uses {language} line comments ({marker}) | JavaScript, TypeScript and Go `//`; SQL and Haskell `--`; Bash and YAML `#`; Clojure `;`; LaTeX `%`; Visual Basic `'`; Fortran `!`. |
+| wraps the example in a {language} block comment | HTML and Markdown `<!-- -->`, CSS `/* */`, OCaml `(* *)`. |
+| has a comment style for every Notion language | Every language gives a placeholder with the example. |
+| keeps the Python indentation inside the comment | `//     return` keeps its four spaces. |
 
 ## Frontend: `frontend/src/Navigation.test.jsx`
 

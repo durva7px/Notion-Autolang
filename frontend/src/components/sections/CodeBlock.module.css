@@ -30,6 +30,12 @@
   field-sizing: content;
 }
 
+/* The placeholder reads like a commented-out example. */
+.editor::placeholder {
+  color: rgba(41, 41, 41, 0.4);
+  opacity: 1;
+}
+
 @media (max-width: 900px) {
   .block {
     margin: 0;

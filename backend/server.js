@@ -31,6 +31,9 @@ const config = {
     .map(url => new URL(url).origin),
   secureCookies: process.env.NODE_ENV === "production",
   // 0–1; blank uses the app default.
+  // Set when running behind a proxy so the playground's rate limit sees real
+  // visitor IPs: a hop count (e.g. 1) or "true".
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   confidenceThreshold: process.env.CONFIDENCE_THRESHOLD
     ? Number(process.env.CONFIDENCE_THRESHOLD)
     : undefined
@@ -41,3 +44,9 @@ const PORT = process.env.PORT || 3000;
 createApp({ config }).listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+function parseTrustProxy(value) {
+  if (!value) return undefined;
+  if (value === "true") return true;
+  return /^\d+$/.test(value) ? Number(value) : value;
+}

@@ -6,7 +6,12 @@ import styles from './CodeToolbar.module.css'
 export default function CodeToolbar({ language, code, className = '', ...props }) {
   return (
     <div className={`${styles.toolbar} ${className}`} {...props}>
-      <button type="button" className={styles.language} data-animate="language-label">
+      <button
+        type="button"
+        className={styles.language}
+        data-animate="language-label"
+        aria-label={`Language: ${language}`}
+      >
         {language}
         <img src={chevron} alt="" className={styles.chevron} />
       </button>

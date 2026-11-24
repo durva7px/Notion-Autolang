@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>AutoLang demo scene</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=block" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #d046d8;
+    --accent-soft: #fa95ff;
+    --peach: #f9cea2;
+    --n-bg: #191919;
+    --n-side: #202020;
+    --n-ink: rgba(255, 255, 255, 0.86);
+    --n-ink-2: rgba(255, 255, 255, 0.55);
+    --n-ink-3: rgba(255, 255, 255, 0.32);
+    --n-line: rgba(255, 255, 255, 0.08);
+    --n-code: #222222;
+    --sans: 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+    --mono: 'Cascadia Mono', 'JetBrains Mono', Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #0b0b0d; overflow: hidden; }
+  #stage {
+    position: relative; width: 1920px; height: 1080px; overflow: hidden;
+    background:
+      radial-gradient(1200px 700px at 15% 10%, rgba(208, 70, 216, 0.22), transparent 60%),
+      radial-gradient(1000px 700px at 90% 95%, rgba(249, 206, 162, 0.14), transparent 60%),
+      linear-gradient(160deg, #141017, #0b0b0d 55%, #120d0c);
+    font-family: var(--sans);
+  }
+  #world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; will-change: transform; }
+
+  /* ---------- browser window ---------- */
+  .win {
+    position: absolute; left: 80px; top: 60px; width: 1760px; height: 960px;
+    border-radius: 14px; overflow: hidden; background: var(--n-bg);
+    box-shadow: 0 40px 120px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  .chrome { height: 46px; background: #2a2a2c; display: flex; align-items: center; padding: 0 14px; gap: 14px; border-bottom: 1px solid #111; }
+  .dots { display: flex; gap: 8px; }
+  .dots i { width: 12px; height: 12px; border-radius: 50%; display: block; background: #4a4a4d; }
+  .tab { height: 34px; margin-top: 12px; align-self: flex-start; background: #1d1d1f; border-radius: 9px 9px 0 0; padding: 0 16px; display: flex; align-items: center; gap: 9px; color: #e8e8e8; font-size: 13px; min-width: 260px; }
+  .tab .fav { width: 16px; height: 16px; border-radius: 3px; background: #f1f1f1; color: #111; font: 700 11px/16px var(--sans); text-align: center; }
+  .addr { flex: 1; height: 30px; background: #1b1b1d; border-radius: 15px; display: flex; align-items: center; padding: 0 16px; color: #a8a8a8; font-size: 13.5px; gap: 8px; }
+  .addr b { color: #e9e9e9; font-weight: 400; }
+  .ext { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; position: relative; }
+  .ext .logo { width: 22px; height: 22px; border-radius: 6px; background: #343434; color: var(--accent-soft); font: 700 10px/22px 'JetBrains Mono', monospace; text-align: center; letter-spacing: -0.5px; }
+  .ext .ping { position: absolute; right: 1px; top: 1px; width: 9px; height: 9px; border-radius: 50%; background: #5fd08d; box-shadow: 0 0 0 0 rgba(95, 208, 141, 0.6); }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(135deg, #7a6cf0, #d046d8); }
+
+  /* ---------- notion app ---------- */
+  .app { position: absolute; top: 46px; left: 0; right: 0; bottom: 0; display: flex; }
+  .side { width: 250px; background: var(--n-side); padding: 10px 8px; color: var(--n-ink-2); font-size: 14px; flex: none; }
+  .ws { display: flex; align-items: center; gap: 9px; padding: 6px 8px; color: var(--n-ink); font-weight: 600; margin-bottom: 6px; }
+  .ws .ic { width: 22px; height: 22px; border-radius: 5px; background: #3b3b3b; color: #fff; font-size: 12px; display: grid; place-items: center; }
+  .si { display: flex; align-items: center; gap: 9px; padding: 5px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; }
+  .si .e { width: 20px; text-align: center; font-size: 14px; }
+  .si.on { background: rgba(255, 255, 255, 0.07); color: var(--n-ink); }
+  .sh { font-size: 12px; font-weight: 600; padding: 16px 8px 6px; color: var(--n-ink-3); }
+  .main { flex: 1; position: relative; overflow: hidden; }
+  .topbar { height: 46px; display: flex; align-items: center; padding: 0 14px; gap: 6px; color: var(--n-ink-2); font-size: 14px; position: absolute; left: 0; right: 0; top: 0; background: var(--n-bg); z-index: 2; }
+  .topbar .crumb b { color: var(--n-ink); font-weight: 400; }
+  .topbar .sp { flex: 1; }
+  .topbar .btn { padding: 4px 9px; border-radius: 5px; }
+  .scroller { position: absolute; left: 0; right: 0; top: 46px; bottom: 0; overflow: hidden; }
+  .doc { width: 900px; margin: 0 auto; padding: 56px 0 400px; will-change: transform; }
+  .icon { font-size: 66px; line-height: 1; margin-bottom: 14px; }
+  .title { font-size: 40px; font-weight: 700; color: var(--n-ink); margin: 0 0 6px; letter-spacing: -0.3px; }
+  .props { display: flex; gap: 26px; color: var(--n-ink-2); font-size: 14px; margin: 14px 0 18px; }
+  .props span b { color: var(--n-ink); font-weight: 400; }
+
+  .blk { position: relative; color: var(--n-ink); }
+  .blk.p { font-size: 16px; line-height: 1.6; padding: 3px 2px; min-height: 31px; }
+  .blk.h2 { font-size: 25px; font-weight: 600; line-height: 1.3; padding: 3px 2px; margin-top: 26px; margin-bottom: 2px; min-height: 39px; }
+  .ph { color: var(--n-ink-3); }
+  .caret { display: inline-block; width: 2px; height: 1.15em; vertical-align: -0.2em; background: #e6e6e6; margin-left: 1px; margin-right: -3px; }
+  .callout { display: flex; gap: 12px; background: rgba(255, 255, 255, 0.045); border-radius: 6px; padding: 16px 18px; margin: 10px 0; font-size: 16px; line-height: 1.6; }
+  .callout code, .blk.p code { font-family: var(--mono); font-size: 14px; color: #eb5757; background: rgba(135, 131, 120, 0.15); padding: 2px 5px; border-radius: 4px; }
+
+  .code { background: var(--n-code); border-radius: 7px; margin: 8px 0 6px; padding: 38px 30px 30px; position: relative; min-height: 104px; }
+  .code pre { margin: 0; font-family: var(--mono); font-size: 15px; line-height: 1.7; white-space: pre; color: #d4d4d4; }
+  .tools { position: absolute; top: 10px; right: 10px; display: flex; align-items: center; gap: 2px; border: 1px solid rgba(255, 255, 255, 0.09); background: #262626; border-radius: 7px; padding: 3px 4px; color: var(--n-ink-2); font-size: 13.5px; }
+  .tools .lang { padding: 3px 8px; border-radius: 5px; display: flex; align-items: center; gap: 6px; position: relative; }
+  .tools .lang svg, .tools .ib svg { display: block; }
+  .tools .div { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.1); margin: 0 4px; }
+  .tools .ib { width: 26px; height: 24px; display: grid; place-items: center; }
+  .chip { position: absolute; right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; display: flex; align-items: center; gap: 7px; padding: 5px 11px 5px 8px; border-radius: 999px; font: 600 12.5px/1 var(--sans); color: #fff; background: linear-gradient(90deg, #7d2a83, #b8329f); box-shadow: 0 6px 22px rgba(208, 70, 216, 0.45); }
+  .chip .lg { width: 18px; height: 18px; border-radius: 5px; background: #1d1d1d; color: var(--accent-soft); font: 700 8px/18px 'JetBrains Mono', monospace; text-align: center; }
+
+  .menu { position: absolute; width: 330px; background: #252525; border-radius: 10px; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 18px 50px rgba(0, 0, 0, 0.55); padding: 6px; z-index: 5; font-size: 14px; color: var(--n-ink); transform-origin: 0 0; }
+  .menu .mh { font-size: 12px; color: var(--n-ink-3); padding: 6px 8px 4px; font-weight: 600; }
+  .menu .mi { display: flex; align-items: center; gap: 12px; padding: 6px 8px; border-radius: 6px; }
+  .menu .mi.on { background: rgba(255, 255, 255, 0.08); }
+  .menu .mi .bx { width: 40px; height: 40px; border-radius: 6px; background: #f1f1ef; color: #37352f; display: grid; place-items: center; font: 600 15px var(--mono); flex: none; }
+  .menu .mi small { display: block; color: var(--n-ink-3); font-size: 12.5px; margin-top: 1px; }
+
+  /* ---------- overlays ---------- */
+  #cursor { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 50; transform-origin: 0 0; }
+  #ripple { position: absolute; z-index: 49; border-radius: 50%; border: 3px solid rgba(250, 149, 255, 0.9); pointer-events: none; }
+  .card { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 60; text-align: center; color: #fff; }
+  .card .mark { width: 92px; height: 92px; border-radius: 22px; background: #343434; color: var(--accent-soft); font: 700 34px/92px 'JetBrains Mono', monospace; box-shadow: 0 18px 60px rgba(208, 70, 216, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.08); margin-bottom: 30px; }
+  .card h1 { font: 700 78px/1.05 'Instrument Sans', var(--sans); margin: 0; letter-spacing: -1.5px; }
+  .card h1 em { font-style: normal; background: linear-gradient(90deg, var(--peach), var(--accent-soft) 60%, var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .card p { font: 500 26px/1.4 'JetBrains Mono', monospace; color: rgba(255, 255, 255, 0.66); margin: 22px 0 0; }
+  .card .cta { margin-top: 40px; display: inline-flex; align-items: center; gap: 12px; padding: 16px 30px; border-radius: 999px; font: 600 22px 'Instrument Sans', var(--sans); color: #fff; background: linear-gradient(90deg, #3b1d3d, #6d2470); box-shadow: 0 0 0 2px rgba(250, 149, 255, 0.55), 0 14px 40px rgba(208, 70, 216, 0.35); }
+  #endBg { position: absolute; inset: 0; z-index: 55; background: radial-gradient(900px 600px at 50% 45%, rgba(40, 18, 42, 0.86), rgba(8, 8, 10, 0.94)); }
+  /* ---------- Notion light mode (scene.html?theme=light) ---------- */
+  :root[data-theme="light"] {
+    --n-bg: #ffffff;
+    --n-side: #f7f7f5;
+    --n-ink: #37352f;
+    --n-ink-2: rgba(55, 53, 47, 0.65);
+    --n-ink-3: rgba(55, 53, 47, 0.42);
+    --n-line: rgba(55, 53, 47, 0.09);
+    --n-code: #f7f6f3;
+  }
+  [data-theme="light"] body { background: #f4f1f4; }
+  [data-theme="light"] #stage {
+    background:
+      radial-gradient(1200px 700px at 15% 10%, rgba(208, 70, 216, 0.16), transparent 60%),
+      radial-gradient(1000px 700px at 90% 95%, rgba(249, 206, 162, 0.32), transparent 60%),
+      linear-gradient(160deg, #fbf7fb, #f3f1f4 55%, #fbf5ef);
+  }
+  [data-theme="light"] .win { box-shadow: 0 40px 110px rgba(60, 30, 70, 0.22), 0 0 0 1px rgba(0, 0, 0, 0.09); }
+  [data-theme="light"] .chrome { background: #e9e9ec; border-bottom-color: #d9d9de; }
+  [data-theme="light"] .dots i { background: #c9c9ce; }
+  [data-theme="light"] .tab { background: #ffffff; color: #2b2b2b; }
+  [data-theme="light"] .tab .fav { background: #191919; color: #fff; }
+  [data-theme="light"] .addr { background: #ffffff; color: #6f6f6f; }
+  [data-theme="light"] .addr b { color: #1f1f1f; }
+  [data-theme="light"] .ws .ic { background: #e3e2de; color: #37352f; }
+  [data-theme="light"] .si.on { background: rgba(55, 53, 47, 0.08); }
+  [data-theme="light"] .caret { background: #37352f; }
+  [data-theme="light"] .callout { background: #f1f1ef; }
+  [data-theme="light"] .code pre { color: #37352f; }
+  [data-theme="light"] .tools { background: #ffffff; border-color: rgba(55, 53, 47, 0.13); box-shadow: 0 2px 6px rgba(15, 15, 15, 0.05); }
+  [data-theme="light"] .tools .div { background: rgba(55, 53, 47, 0.16); }
+  [data-theme="light"] .menu { background: #ffffff; box-shadow: 0 0 0 1px rgba(15, 15, 15, 0.06), 0 12px 40px rgba(15, 15, 15, 0.14); }
+  [data-theme="light"] .menu .mi.on { background: rgba(55, 53, 47, 0.08); }
+  [data-theme="light"] .menu .mi .bx { background: #ffffff; box-shadow: 0 0 0 1px rgba(15, 15, 15, 0.12); }
+  [data-theme="light"] .card { color: #292929; }
+  [data-theme="light"] .card p { color: rgba(41, 41, 41, 0.62); }
+  [data-theme="light"] .card h1 em { background-image: linear-gradient(90deg, #b9732d, #bf22c7 60%, #8e1a95); }
+  [data-theme="light"] .card .mark { box-shadow: 0 18px 50px rgba(191, 34, 199, 0.28); }
+  [data-theme="light"] .card .cta { color: #fff; background: linear-gradient(90deg, #2a2a2a, #4c2a2a); }
+  [data-theme="light"] #endBg { background: radial-gradient(900px 600px at 50% 45%, rgba(255, 246, 255, 0.9), rgba(244, 241, 244, 0.95)); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="world">
+    <div class="win" id="win">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="tab"><span class="fav">N</span>Payments API · Developer Guide</div>
+        <div class="addr"><svg width="12" height="14" viewBox="0 0 12 14"><rect x="1" y="6" width="10" height="7.5" rx="1.6" fill="#9a9a9a"/><path d="M3.3 6V4.2a2.7 2.7 0 0 1 5.4 0V6" stroke="#9a9a9a" stroke-width="1.5" fill="none"/></svg><b>notion.so</b>/acme/payments-api-developer-guide</div>
+        <div class="ext" id="ext"><div class="logo">&lt;/&gt;</div><div class="ping" id="ping"></div></div>
+        <div class="avatar"></div>
+      </div>
+      <div class="app">
+        <div class="side">
+          <div class="ws"><span class="ic">A</span>Acme Engineering</div>
+          <div class="si"><span class="e">🔍</span>Search</div>
+          <div class="si"><span class="e">🏠</span>Home</div>
+          <div class="si"><span class="e">📥</span>Inbox</div>
+          <div class="sh">Teamspaces</div>
+          <div class="si"><span class="e">📘</span>Engineering wiki</div>
+          <div class="si on" style="padding-left:26px"><span class="e">⚡</span>Payments API · Developer Guide</div>
+          <div class="si" style="padding-left:26px"><span class="e">🧭</span>Architecture overview</div>
+          <div class="si" style="padding-left:26px"><span class="e">🧪</span>Testing strategy</div>
+          <div class="si"><span class="e">🗺️</span>Roadmap 2027</div>
+          <div class="si"><span class="e">🐞</span>Incident log</div>
+          <div class="si"><span class="e">📝</span>Meeting notes</div>
+          <div class="sh">Private</div>
+          <div class="si"><span class="e">📓</span>Scratchpad</div>
+          <div class="si"><span class="e">✅</span>My tasks</div>
+        </div>
+        <div class="main">
+          <div class="topbar">
+            <span class="crumb">📘 Engineering wiki&nbsp;&nbsp;/&nbsp;&nbsp;<b>⚡ Payments API · Developer Guide</b></span>
+            <span class="sp"></span>
+            <span class="btn">Edited just now</span><span class="btn" style="color:var(--n-ink)">Share</span><span class="btn">☆</span><span class="btn">···</span>
+          </div>
+          <div class="scroller"><div class="doc" id="doc"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="ripple"></div>
+  <svg id="cursor" width="34" height="40" viewBox="0 0 34 40"></svg>
+  <div id="endBg"></div>
+  <div class="card" id="titleCard">
+    <div class="mark">&lt;/&gt;</div>
+    <h1>Notion <em>AutoLang</em></h1>
+    <p>Code blocks that know their language.</p>
+  </div>
+  <div class="card" id="endCard">
+    <div class="mark">&lt;/&gt;</div>
+    <h1>You write code.<br /><em>We get the language.</em></h1>
+    <p>Notion AutoLang · Chrome extension</p>
+    <div class="cta">Add to Chrome&nbsp;&nbsp;→</div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// Helpers
+// ============================================================
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeIO = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const easeOut = (k) => 1 - Math.pow(1 - k, 3);
+const easeOutBack = (k) => { const c = 1.5; return 1 + (c + 1) * Math.pow(k - 1, 3) + c * Math.pow(k - 1, 2); };
+const ramp = (t, a, b) => clamp((t - a) / (b - a));
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function rng(seed) { return () => { seed |= 0; seed = (seed + 0x6d2b79f5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+const rand = rng(7);
+function hex(c) { const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+function mix(a, b, k) { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(lerp(v, B[i], k))).join(',')})`; }
+
+// ============================================================
+// Syntax highlighting (small, good enough for the demo)
+// ============================================================
+const THEME = new URLSearchParams(location.search).get('theme') === 'light' ? 'light' : 'dark';
+document.documentElement.dataset.theme = THEME;
+const PALETTES = {
+  dark: {
+    plain: '#d4d4d4',
+    col: { kw: '#c792ea', str: '#c3e88d', fn: '#82aaff', num: '#f78c6c', com: '#6a7096', type: '#ffcb6b', dec: '#ffcb6b', op: '#89ddff', flag: '#f78c6c', prop: '#f07178' },
+    label: ['#8c8c8c', '#ffffff'], labelBg: 0.45, labelGlow: 0.8,
+  },
+  light: {
+    plain: '#37352f',
+    col: { kw: '#a626a4', str: '#50a14f', fn: '#4078f2', num: '#c2410c', com: '#a0a1a7', type: '#b45309', dec: '#b45309', op: '#0184bc', flag: '#c2410c', prop: '#e45649' },
+    label: ['#787774', '#a21caf'], labelBg: 0.16, labelGlow: 0.35,
+  },
+};
+const PAL = PALETTES[THEME];
+const PLAIN = PAL.plain;
+const COL = PAL.col;
+const KW = {
+  json: ['true', 'false', 'null'],
+  typescript: ['import', 'from', 'const', 'let', 'await', 'async', 'new', 'return', 'export', 'function', 'type', 'interface', 'as'],
+  python: ['from', 'import', 'def', 'return', 'if', 'else', 'for', 'in', 'and', 'or', 'not', 'None', 'True', 'False', 'class'],
+  sql: ['SELECT', 'FROM', 'WHERE', 'ORDER', 'BY', 'DESC', 'AND', 'LIMIT', 'INTERVAL', 'NOW', 'AS', 'GROUP', 'COUNT'],
+};
+function tokenize(code, lang) {
+  const kw = new Set(KW[lang] || []);
+  const com = lang === 'python' ? /^#.*/ : lang === 'sql' ? /^--.*/ : /^\/\/.*/;
+  const out = []; let i = 0;
+  while (i < code.length) {
+    const rest = code.slice(i); let m;
+    if ((m = rest.match(com))) out.push([m[0], 'com']);
+    else if ((m = rest.match(/^("[^"\n]*"?|'[^'\n]*'?|`[^`\n]*`?)/))) out.push([m[0], lang === 'json' && /^\s*:/.test(code.slice(i + m[0].length)) ? 'prop' : 'str']);
+    else if (lang === 'python' && (m = rest.match(/^@[\w.]+/))) out.push([m[0], 'dec']);
+    else if ((m = rest.match(/^\d[\d_.]*/))) out.push([m[0], 'num']);
+    else if ((m = rest.match(/^[A-Za-z_]\w*/))) {
+      const w = m[0]; const after = code.slice(i + w.length);
+      const prev = code.slice(0, i).trimEnd().slice(-1);
+      let c = null;
+      if (kw.has(w)) c = 'kw';
+      else if (lang === 'typescript' && /^(string|number|boolean)$/.test(w)) c = 'type';
+      else if (/^\s*\(/.test(after)) c = 'fn';
+      else if (/^[A-Z]/.test(w) && lang !== 'sql') c = 'type';
+      else if (prev === '.') c = 'prop';
+      out.push([w, c]);
+    } else if ((m = rest.match(/^[{}()[\]=:;,.<>+\-*/!]+/))) out.push([m[0], 'op']);
+    else { m = [rest[0]]; out.push([rest[0], null]); }
+    i += m[0].length;
+  }
+  return out;
+}
+function codeHTML(code, lang, k) {
+  if (!lang || k <= 0) return esc(code);
+  return tokenize(code, lang).map(([s, c]) => (c ? `<span style="color:${mix(PLAIN, COL[c], k)}${c === 'com' ? ';font-style:italic' : ''}">${esc(s)}</span>` : esc(s))).join('');
+}
+
+// ============================================================
+// Timeline builder
+// ============================================================
+const blocks = [];      // document blocks after the static intro
+const camKF = [];       // camera moves {t0,t1,spec,z}
+const mouseKF = [];     // mouse moves {t0,t1,spec,cursor}
+const clicks = [];      // click times
+const scrollKF = [];    // page scroll moves {t0,t1,spec}
+const menus = [];       // slash menu {block,t0,t1,queryFrom}
+const typingSpans = []; // [t0,t1] when the pointer is hidden
+let T = 0;
+let active = null;
+
+function newBlock(id, kind, at = T) {
+  const b = { id, kind, chars: [], createdAt: at, focus: [], conv: null, lang: null, detectAt: Infinity };
+  blocks.push(b); return b;
+}
+function focus(b, at = T) { if (active && active !== b) blur(active, at); b.focus.push([at, Infinity]); active = b; }
+function blur(b, at = T) { const f = b.focus[b.focus.length - 1]; if (f && f[1] === Infinity) f[1] = at; if (active === b) active = null; }
+function wait(s) { T += s; }
+function typeStr(b, str, cps = 30) {
+  const t0 = T;
+  for (const c of str) {
+    let dt = (1 / cps) * (0.55 + rand() * 0.9);
+    if (c === ' ' && rand() < 0.18) dt += 0.07;
+    if (/[.,:;(]/.test(c)) dt += 0.04;
+    T += dt; b.chars.push({ c, t: T });
+  }
+  typingSpans.push([t0, T]);
+}
+function typeCode(b, code, cps = 38) {
+  const t0 = T;
+  const lines = code.split('\n');
+  lines.forEach((line, li) => {
+    if (li > 0) { T += 0.11 + rand() * 0.06; const ind = line.match(/^\s*/)[0]; b.chars.push({ c: '\n' + ind, t: T }); line = line.slice(ind.length); }
+    for (const c of line) { T += (1 / cps) * (0.5 + rand()); if (c === ' ' && rand() < 0.12) T += 0.05; b.chars.push({ c, t: T }); }
+  });
+  typingSpans.push([t0, T]);
+}
+function convert(b, kind, drop, at = T) { b.conv = { t: at, kind, drop }; }
+function enter(nextId, kind = 'p') { T += 0.09; const nb = newBlock(nextId, kind, T); focus(nb, T); T += 0.06; return nb; }
+function cam(spec, z, dur, at = T) { camKF.push({ t0: at, t1: at + dur, spec, z }); }
+function mouseTo(spec, dur, cursor = 'arrow', at = T) { mouseKF.push({ t0: at, t1: at + dur, spec, cursor }); }
+function click(at = T) { clicks.push(at); }
+function scrollTo(spec, dur, at = T) { scrollKF.push({ t0: at, t1: at + dur, spec }); }
+function detect(b, lang, label, at = T) { b.lang = lang; b.label = label; b.detectAt = at; }
+
+// Code that gets typed
+// Each snippet is one AutoLang's real detector (flourite, backend/services/
+// language-detector.js) recognises above the 0.4 confidence threshold, so the
+// video only shows detections the product actually makes.
+const JSON_DEPS = `{
+  "dependencies": {
+    "@acme/payments-sdk": "^2.4.0"
+  }
+}`;
+const TS = `import { Payments } from "@acme/payments-sdk";
+
+interface ChargeRequest {
+  amount: number;
+  currency: string;
+  metadata?: Record<string, string>;
+}
+
+const client = new Payments({ apiKey: process.env.ACME_KEY as string });
+const charge = await client.charges.create({
+  amount: 4200,
+  currency: "usd",
+} as ChargeRequest);`;
+const PY = `from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.post("/webhooks/payments")
+def handle_event():
+    event = request.get_json()
+    if event["type"] == "charge.succeeded":
+        fulfil_order(event["data"]["id"])
+    return "", 204`;
+const SQL = `SELECT status, COUNT(*) AS total
+FROM charges
+WHERE created_at > NOW() - INTERVAL '7 days'
+GROUP BY status
+ORDER BY total DESC;`;
+
+// Shot list --------------------------------------------------
+const TITLE_END = 2.5;
+const MARK = {};
+const WIDE = { pt: [960, 540] };
+cam(WIDE, 1, 0, 0);
+mouseTo({ pt: [1480, 930] }, 0, 'arrow', 0);
+T = 3.4;
+
+// --- Section 1: heading, sentence, /code menu, package.json dependency
+mouseTo({ el: 'intro', ax: 0, ay: 1, dx: 24, dy: 22 }, 0.95, 'ibeam');
+cam({ el: 'intro', ax: 0.42, ay: 1, dy: 40 }, 1.55, 1.3, T + 0.15);
+wait(1.0); click();
+let b = newBlock('h1', 'p'); focus(b); wait(0.35);
+typeStr(b, '## ', 12); convert(b, 'h2', 3); wait(0.12);
+typeStr(b, 'Install the SDK', 24); wait(0.25);
+b = enter('p2'); typeStr(b, 'Add the client to your package.json:', 30); wait(0.25);
+b = enter('cb1');
+cam({ el: 'cb1', ax: 0.5, ay: 0, dy: 60 }, 1.7, 0.9, T);
+typeStr(b, '/', 8);
+const menuStart = T; MARK.menu = T;
+wait(0.35); typeStr(b, 'code', 9); wait(0.45);
+menus.push({ block: 'cb1', t0: menuStart, t1: T + 0.12 });
+convert(b, 'code', 5, T + 0.12); wait(0.5);
+typeCode(b, JSON_DEPS, 34);
+wait(0.25);
+mouseTo({ el: 'cb1', ax: 0.62, ay: 0.85 }, 0.8, 'ibeam');
+cam({ el: 'cb1', ax: 0.5, ay: 0.5 }, 2.05, 1.0, T + 0.15);
+wait(1.3); MARK.json = T; detect(b, 'json', 'JSON'); wait(1.6);
+
+// --- Section 2: TypeScript
+scrollTo({ el: 'h1', dy: -70 }, 1.2, T);
+cam({ el: 'cb1', ax: 0.4, ay: 1, dy: 90 }, 1.45, 1.1, T);
+mouseTo({ el: 'cb1', ax: 0, ay: 1, dx: 30, dy: 24 }, 1.0, 'ibeam', T + 0.1);
+wait(0.95); click(); blur(active);
+b = newBlock('h2', 'p'); focus(b); wait(0.25);
+typeStr(b, '## ', 12); convert(b, 'h2', 3); wait(0.1);
+typeStr(b, 'Create a charge', 24); wait(0.2);
+b = enter('cb2'); typeStr(b, '```', 10); convert(b, 'code', 3); wait(0.35);
+cam({ el: 'cb2', ax: 0.42, follow: true, dy: 30 }, 1.7, 0.9, T - 0.3);
+typeCode(b, TS, 60);
+wait(0.25);
+mouseTo({ el: 'cb2', ax: 0.75, ay: 0.7 }, 0.7, 'ibeam');
+cam({ el: 'cb2', ax: 0.5, ay: 0.5, dy: -10 }, 1.5, 1.0, T + 0.1);
+wait(1.25); MARK.ts = T; detect(b, 'typescript', 'TypeScript'); wait(1.6);
+
+// --- Section 3: Python webhook
+scrollTo({ el: 'h2', dy: -40 }, 1.3, T);
+cam({ el: 'cb2', ax: 0.4, ay: 1, dy: 90 }, 1.4, 1.1, T);
+mouseTo({ el: 'cb2', ax: 0, ay: 1, dx: 30, dy: 24 }, 0.85, 'ibeam', T + 0.1);
+wait(0.95); click(); blur(active);
+b = newBlock('h3', 'p'); focus(b); wait(0.25);
+typeStr(b, '## ', 12); convert(b, 'h2', 3); wait(0.1);
+typeStr(b, 'Handle webhooks', 24); wait(0.2);
+b = enter('cb3'); typeStr(b, '```', 10); convert(b, 'code', 3); wait(0.35);
+cam({ el: 'cb3', ax: 0.42, follow: true, dy: 30 }, 1.7, 0.9, T - 0.3);
+typeCode(b, PY, 54);
+wait(0.25);
+mouseTo({ el: 'cb3', ax: 0.75, ay: 0.7 }, 0.7, 'ibeam');
+cam({ el: 'cb3', ax: 0.5, ay: 0.5, dy: -10 }, 1.68, 1.0, T + 0.1);
+wait(1.25); MARK.py = T; detect(b, 'python', 'Python'); wait(1.5);
+
+// --- Section 4: SQL (quicker)
+scrollTo({ el: 'h3', dy: -20 }, 1.3, T);
+cam({ el: 'cb3', ax: 0.4, ay: 1, dy: 90 }, 1.4, 1.1, T);
+mouseTo({ el: 'cb3', ax: 0, ay: 1, dx: 30, dy: 24 }, 1.0, 'ibeam', T + 0.1);
+wait(0.95); click(); blur(active);
+b = newBlock('h4', 'p'); focus(b); wait(0.2);
+typeStr(b, '## ', 14); convert(b, 'h2', 3); wait(0.08);
+typeStr(b, 'Count this week’s charges', 28); wait(0.15);
+b = enter('cb4'); typeStr(b, '```', 12); convert(b, 'code', 3); wait(0.3);
+cam({ el: 'cb4', ax: 0.42, follow: true, dy: 20 }, 1.75, 0.8, T - 0.3);
+typeCode(b, SQL, 48);
+wait(0.2);
+mouseTo({ el: 'cb4', ax: 0.8, ay: 0.7 }, 0.6, 'ibeam');
+cam({ el: 'cb4', ax: 0.5, ay: 0.5, dy: -10 }, 1.85, 0.9, T + 0.1);
+wait(1.2); MARK.sql = T; detect(b, 'sql', 'SQL'); wait(1.4);
+blur(active);
+
+// --- Finale: pull back, pan over the whole page
+const FIN = T;
+cam(WIDE, 1, 1.5, T);
+mouseTo({ pt: [1650, 980] }, 1.4, 'arrow', T);
+scrollTo({ el: 'h1', dy: -40 }, 1.6, T + 0.1);
+wait(1.9);
+scrollTo({ el: 'cb4', ay: 1, dy: -720 }, 3.2, T);
+wait(3.4);
+const END_IN = T;
+const DURATION = END_IN + 3.6;
+
+// ============================================================
+// Static intro content
+// ============================================================
+const INTRO = `
+  <div class="icon">⚡</div>
+  <div class="title">Payments API · Developer Guide</div>
+  <div class="props"><span>Owner&nbsp;&nbsp;<b>Platform team</b></span><span>Status&nbsp;&nbsp;<b>🟢 Live</b></span><span>Updated&nbsp;&nbsp;<b>Today</b></span></div>
+  <div class="blk p">Everything you need to take your first payment with the Acme API: install the SDK, create a charge, and react to webhooks.</div>
+  <div class="callout"><span>🔗</span><span>All requests go to <code>https://api.acme.dev/v1</code> and need an API key from the dashboard.</span></div>
+  <div class="blk p" data-id="intro">Each section below has a copy-paste snippet.</div>`;
+
+// ============================================================
+// Rendering a frame
+// ============================================================
+const $ = (id) => document.getElementById(id);
+const doc = $('doc'), world = $('world'), cursorEl = $('cursor');
+const ICONS = {
+  chev: '<svg width="11" height="11" viewBox="0 0 12 12"><path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>',
+  copy: '<svg width="15" height="15" viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M11 3.5V3a1.5 1.5 0 0 0-1.5-1.5h-6A1.5 1.5 0 0 0 2 3v6.5A1.5 1.5 0 0 0 3.5 11H4" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>',
+  wrap: '<svg width="15" height="15" viewBox="0 0 16 16"><path d="M13 3v5a2 2 0 0 1-2 2H4m0 0 3-3m-3 3 3 3" stroke="currentColor" stroke-width="1.4" fill="none"/></svg>',
+  more: '<svg width="15" height="15" viewBox="0 0 16 16"><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="13" cy="8" r="1.3" fill="currentColor"/></svg>',
+};
+const MENU_ITEMS = [
+  ['Text', 'Just start writing with plain text.', 'Aa'],
+  ['Heading 2', 'Medium section heading.', 'H2'],
+  ['To-do list', 'Track tasks with a to-do list.', '☑'],
+  ['Code', 'Capture a code snippet.', '&lt;/&gt;'],
+  ['Callout', 'Make writing stand out.', '💡'],
+  ['Quote', 'Capture a quote.', '❝'],
+];
+
+function blockState(b, t) {
+  let chars = b.chars.filter((c) => c.t <= t).map((c) => c.c).join('');
+  let kind = b.kind;
+  if (b.conv && t >= b.conv.t) { kind = b.conv.kind; chars = chars.slice(b.conv.drop); }
+  const focused = b.focus.some(([a, z]) => t >= a && t < z);
+  const lastKey = b.chars.filter((c) => c.t <= t).reduce((m, c) => Math.max(m, c.t), -9);
+  return { text: chars, kind, focused, lastKey };
+}
+function caretHTML(t, lastKey) {
+  const on = t - lastKey < 0.5 || ((t - lastKey) % 1.06) < 0.58;
+  return `<span class="caret" style="opacity:${on ? 1 : 0}"></span>`;
+}
+function renderDoc(t) {
+  let html = INTRO;
+  for (const b of blocks) {
+    if (t < b.createdAt) continue;
+    const s = blockState(b, t);
+    const caret = s.focused ? caretHTML(t, s.lastKey) : '';
+    if (s.kind === 'code') {
+      const k = b.lang ? easeIO(ramp(t, b.detectAt, b.detectAt + 0.55)) : 0;
+      const label = t >= b.detectAt ? b.label : 'Plain Text';
+      const pulse = t >= b.detectAt ? Math.exp(-(t - b.detectAt) * 2.2) : 0;
+      const chipK = b.lang ? ramp(t, b.detectAt, b.detectAt + 0.3) * (1 - ramp(t, b.detectAt + 1.9, b.detectAt + 2.3)) : 0;
+      const pop = t >= b.detectAt ? 1 + 0.18 * Math.sin(clamp((t - b.detectAt) / 0.35) * Math.PI) : 1;
+      const lblColor = mix(PAL.label[0], PAL.label[1], pulse);
+      const chip = chipK > 0 ? `<div class="chip" style="opacity:${easeOut(chipK)};transform:translateY(-50%) translateX(${(1 - easeOut(chipK)) * 14}px) scale(${0.9 + 0.1 * easeOut(chipK)})"><span class="lg">&lt;/&gt;</span>AutoLang detected ${b.label}</div>` : '';
+      const appear = easeOut(ramp(t, b.conv ? b.conv.t : b.createdAt, (b.conv ? b.conv.t : b.createdAt) + 0.22));
+      html += `<div class="code" data-id="${b.id}" style="opacity:${0.4 + 0.6 * appear}">
+        <div class="tools" data-id="tools-${b.id}"><div class="lang" style="color:${lblColor};background:rgba(208,70,216,${PAL.labelBg * pulse});box-shadow:0 0 ${24 * pulse}px rgba(208,70,216,${PAL.labelGlow * pulse});transform:scale(${pop})">${chip}${label} ${ICONS.chev}</div><span class="div"></span><span class="ib">${ICONS.copy}</span><span class="ib">${ICONS.wrap}</span><span class="ib">${ICONS.more}</span></div>
+        <pre>${codeHTML(s.text, b.lang, k)}${caret}</pre></div>`;
+    } else {
+      const ph = s.focused && !s.text ? `<span class="ph">${caret}${s.kind === 'h2' ? 'Heading 2' : "Write something, or press '/' for commands…"}</span>` : '';
+      html += `<div class="blk ${s.kind}" data-id="${b.id}">${ph || esc(s.text) + caret}</div>`;
+    }
+  }
+  doc.innerHTML = html;
+  // slash menu
+  for (const m of menus) {
+    if (t < m.t0 || t >= m.t1) continue;
+    const blk = blocks.find((x) => x.id === m.block);
+    const q = blockState(blk, t).text.slice(1).toLowerCase();
+    const items = MENU_ITEMS.filter(([n]) => n.toLowerCase().includes(q));
+    const el = doc.querySelector(`[data-id="${m.block}"]`);
+    const k = easeOut(ramp(t, m.t0, m.t0 + 0.16)) * (1 - ramp(t, m.t1 - 0.1, m.t1));
+    const menu = document.createElement('div');
+    menu.className = 'menu';
+    menu.style.left = el.offsetLeft + 'px';
+    menu.style.top = el.offsetTop + el.offsetHeight + 6 + 'px';
+    menu.style.opacity = k;
+    menu.style.transform = `scale(${0.96 + 0.04 * k})`;
+    menu.innerHTML = `<div class="mh">${q ? 'Results' : 'Basic blocks'}</div>` + items.map(([n, d, g], i) => `<div class="mi ${i === 0 ? 'on' : ''}"><span class="bx">${g}</span><span>${n}<small>${d}</small></span></div>`).join('');
+    doc.style.position = 'relative';
+    doc.appendChild(menu);
+  }
+}
+
+// --- measuring (with the camera transform removed) ---
+function rectOf(id) {
+  const el = doc.querySelector(`[data-id="${id}"]`);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left, y: r.top, w: r.width, h: r.height };
+}
+let endDocRects = {};
+function resolve(spec, t) {
+  if (spec.pt) return { x: spec.pt[0], y: spec.pt[1] };
+  const r = rectOf(spec.el);
+  if (!r) return null;
+  let x = r.x + r.w * (spec.ax || 0) + (spec.dx || 0);
+  let y = r.y + r.h * (spec.ay || 0) + (spec.dy || 0);
+  if (spec.follow) {
+    // smoothed caret line, computed from the typing schedule (deterministic)
+    const blk = blocks.find((b) => b.id === spec.el);
+    let acc = 0; const N = 10;
+    for (let i = 0; i < N; i++) { const s = t - 0.6 * (i / N); acc += blockState(blk, s).text.split('\n').length - 1; }
+    y = r.y + 38 + 25.5 * (acc / N) + (spec.dy || 0);
+  }
+  return { x, y };
+}
+// scroll targets use end-of-video layout in document coordinates (blocks only grow downward)
+function scrollValue(t) {
+  let v = 0;
+  for (const k of scrollKF) {
+    const r = endDocRects[k.spec.el]; if (!r) continue;
+    const target = Math.max(0, r.y + r.h * (k.spec.ay || 0) + (k.spec.dy || 0) - 56);
+    v = lerp(v, target, easeIO(ramp(t, k.t0, k.t1)));
+  }
+  return v;
+}
+function camAt(t) {
+  let pos = resolve(camKF[0].spec, t), z = camKF[0].z;
+  for (const k of camKF.slice(1)) {
+    if (t < k.t0) break;
+    const p = resolve(k.spec, t) || pos;
+    const e = easeIO(ramp(t, k.t0, k.t1));
+    pos = { x: lerp(pos.x, p.x, e), y: lerp(pos.y, p.y, e) };
+    z = Math.exp(lerp(Math.log(z), Math.log(k.z), e));
+  }
+  // keep the view inside the browser window once zoomed in
+  const W = { l: 80, t: 60, r: 1840, b: 1020 };
+  const hw = 960 / z, hh = 540 / z;
+  if (hw < (W.r - W.l) / 2) pos.x = clamp(pos.x, W.l + hw, W.r - hw); else pos.x = 960;
+  if (hh < (W.b - W.t) / 2) pos.y = clamp(pos.y, W.t + hh, W.b - hh); else pos.y = 540;
+  return { ...pos, z };
+}
+function mouseAt(t) {
+  let pos = resolve(mouseKF[0].spec, t), cur = mouseKF[0].cursor;
+  for (const k of mouseKF.slice(1)) {
+    if (t < k.t0) break;
+    const p = resolve(k.spec, t) || pos;
+    const e = easeIO(ramp(t, k.t0, k.t1));
+    const arc = Math.sin(e * Math.PI) * Math.min(60, Math.hypot(p.x - pos.x, p.y - pos.y) * 0.12);
+    const dx = p.x - pos.x, dy = p.y - pos.y, L = Math.hypot(dx, dy) || 1;
+    pos = { x: lerp(pos.x, p.x, e) - (dy / L) * arc, y: lerp(pos.y, p.y, e) + (dx / L) * arc };
+    if (e > 0.5) cur = k.cursor;
+  }
+  // hide the pointer while typing, like the OS does
+  let vis = 1;
+  for (const [a, z] of typingSpans) {
+    const nextMove = mouseKF.find((k) => k.t0 >= z - 0.01);
+    const showAt = nextMove ? nextMove.t0 : Infinity;
+    if (t >= a && t < showAt) vis = Math.min(vis, 1 - ramp(t, a, a + 0.15) * (1 - ramp(t, showAt, showAt + 0.15)));
+  }
+  return { ...pos, cur, vis };
+}
+const ARROW = '<path d="M5 3 L5 29 L11.5 23 L16 33 L20.5 31 L16 21.5 L25 21.5 Z" fill="#fff" stroke="#111" stroke-width="1.8" stroke-linejoin="round"/>';
+const IBEAM = '<path d="M11 6 h3 a3 3 0 0 1 3 3 v18 a3 3 0 0 1 -3 3 h-3 M23 6 h-3 a3 3 0 0 0 -3 3 v18 a3 3 0 0 0 3 3 h3" stroke="#111" stroke-width="4.2" fill="none" stroke-linecap="round"/><path d="M11 6 h3 a3 3 0 0 1 3 3 v18 a3 3 0 0 1 -3 3 h-3 M23 6 h-3 a3 3 0 0 0 -3 3 v18 a3 3 0 0 0 3 3 h3" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round"/>';
+
+function renderAt(t) {
+  renderDoc(t);
+  world.style.transform = 'none';
+  const sc = scrollValue(t);
+  doc.style.transform = `translateY(${-sc}px)`;
+
+  // ping on the extension icon whenever a block is detected
+  const lastDetect = Math.max(-9, ...blocks.filter((b) => b.detectAt <= t).map((b) => b.detectAt));
+  const pk = clamp(1 - (t - lastDetect) / 0.9);
+  $('ping').style.boxShadow = `0 0 0 ${10 * (1 - pk)}px rgba(95,208,141,${0.6 * pk})`;
+
+  const c = camAt(t);
+  const m = mouseAt(t);
+  // intro push-in + slow drift so the frame is never fully static
+  const intro = easeOut(ramp(t, TITLE_END - 0.4, TITLE_END + 0.9));
+  const drift = 1 + 0.006 * Math.sin(t * 0.7);
+  const z = c.z * lerp(0.86, 1, intro) * drift;
+  const tx = 960 - c.x * z, ty = 540 - c.y * z;
+  world.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
+  world.style.opacity = intro;
+
+  // end card blur
+  const endK = easeIO(ramp(t, END_IN, END_IN + 0.9));
+  world.style.filter = endK > 0 ? `blur(${endK * 10}px)` : 'none';
+
+  // pointer (screen space, scaled gently with zoom)
+  const cs = 1 + (z - 1) * 0.4;
+  let press = 1, rip = null;
+  for (const ct of clicks) { if (t >= ct - 0.05 && t < ct + 0.5) { press = 1 - 0.18 * Math.sin(clamp((t - ct + 0.05) / 0.2) * Math.PI); rip = ramp(t, ct, ct + 0.5); } }
+  const sx = tx + m.x * z, sy = ty + m.y * z;
+  cursorEl.innerHTML = m.cur === 'ibeam' ? IBEAM : ARROW;
+  const hot = m.cur === 'ibeam' ? [17, 18] : [5, 3];
+  cursorEl.style.transform = `translate(${sx - hot[0] * cs * press}px, ${sy - hot[1] * cs * press}px) scale(${cs * press})`;
+  cursorEl.style.opacity = m.vis * intro * (1 - endK);
+  cursorEl.style.filter = 'drop-shadow(0 3px 4px rgba(0,0,0,.45))';
+  const rp = $('ripple');
+  if (rip !== null && rip < 1) {
+    const R = (14 + 40 * easeOut(rip)) * cs;
+    Object.assign(rp.style, { display: 'block', left: sx - R + 'px', top: sy - R + 'px', width: 2 * R + 'px', height: 2 * R + 'px', opacity: 1 - rip });
+  } else rp.style.display = 'none';
+
+  // cards
+  const tin = easeOut(ramp(t, 0.15, 0.9)), tout = easeIO(ramp(t, TITLE_END - 0.6, TITLE_END + 0.1));
+  const tc = $('titleCard');
+  tc.style.opacity = tin * (1 - tout);
+  tc.style.transform = `translateY(${(1 - tin) * 24}px) scale(${1 + tout * 0.08})`;
+  tc.style.filter = tout > 0 ? `blur(${tout * 8}px)` : 'none';
+  const ec = $('endCard');
+  const ek = easeOut(ramp(t, END_IN + 0.25, END_IN + 1.1));
+  ec.style.opacity = ek;
+  ec.style.transform = `translateY(${(1 - ek) * 26}px)`;
+  ec.style.display = ek > 0 ? 'flex' : 'none';
+  tc.style.display = tc.style.opacity > 0 ? 'flex' : 'none';
+  const bgK = Math.max(1 - easeIO(ramp(t, TITLE_END - 0.6, TITLE_END + 0.3)), endK);
+  $('endBg').style.opacity = bgK;
+  $('endBg').style.display = bgK > 0 ? 'block' : 'none';
+}
+
+// measure end-of-video layout in document coordinates once
+function measureEnd() {
+  renderDoc(DURATION);
+  doc.style.transform = 'none';
+  world.style.transform = 'none';
+  const top = doc.getBoundingClientRect().top;
+  for (const b of blocks) { const r = rectOf(b.id); if (r) endDocRects[b.id] = { y: r.y - top, h: r.h }; }
+}
+
+window.__DURATION = DURATION;
+window.__MARK = MARK;
+window.__render = (t) => renderAt(t);
+window.__ready = document.fonts.ready.then(() => { measureEnd(); renderAt(0); return true; });
+
+// live preview: scene.html?play (or ?t=12.5 for a single frame)
+const qs = new URLSearchParams(location.search);
+window.__ready.then(() => {
+  const fit = () => { const s = Math.min(innerWidth / 1920, innerHeight / 1080); $('stage').style.transform = `scale(${s})`; $('stage').style.transformOrigin = '0 0'; };
+  if (qs.has('t')) { fit(); renderAt(parseFloat(qs.get('t'))); }
+  else if (qs.has('play')) { fit(); const s0 = performance.now(); const loop = () => { renderAt(((performance.now() - s0) / 1000) % DURATION); requestAnimationFrame(loop); }; loop(); }
+});
+</script>
+</body>
+</html>

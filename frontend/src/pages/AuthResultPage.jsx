@@ -28,8 +28,10 @@ export default function AuthResultPage({ result }) {
 }
 
 function Connected({ workspace, openUrl }) {
-  // Steps 02 and 03; step 01 (connect) is what just finished.
-  const nextSteps = steps.filter(step => !step.action)
+  // Connecting (from the extension) is what just finished; show only the steps after it.
+  const connectIndex = steps.findIndex(step => step.id === 'connect-notion')
+  const doneStep = steps[connectIndex]
+  const nextSteps = steps.slice(connectIndex + 1)
 
   return (
     <>
@@ -37,7 +39,7 @@ function Connected({ workspace, openUrl }) {
         <div className={styles.inner}>
           <p className={styles.eyebrow}>
             <img src={check} alt="" aria-hidden="true" className={styles.check} />
-            Step 01 complete
+            Step {doneStep.number} complete
           </p>
           <h1 className={styles.heading}>
             <span className={styles.lineOne}>Notion workspace</span>{' '}

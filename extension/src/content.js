@@ -4,11 +4,20 @@
 ;(async () => {
   const { isCodeBlockChange } = await import(chrome.runtime.getURL('src/notionPage.js'))
 
-  const notify = () => chrome.runtime.sendMessage({ type: 'code-changed', url: location.href })
-
-  new MutationObserver(mutations => {
+  const observer = new MutationObserver(mutations => {
     if (isCodeBlockChange(mutations)) notify()
-  }).observe(document.body, { childList: true, subtree: true, characterData: true })
+  })
+
+  function notify() {
+    try {
+      chrome.runtime.sendMessage({ type: 'code-changed', url: location.href }).catch(() => {})
+    } catch {
+      // The extension was reloaded or removed; this copy of the script is orphaned.
+      observer.disconnect()
+    }
+  }
+
+  observer.observe(document.body, { childList: true, subtree: true, characterData: true })
 
   // Sync whatever is on the page when it first opens.
   notify()

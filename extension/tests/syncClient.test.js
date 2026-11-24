@@ -25,6 +25,7 @@ describe('createSyncClient', () => {
     const client = createSyncClient({ apiUrl: 'http://localhost:3000', fetch: respond(401, { error: 'x' }) })
 
     await expect(client.syncPage(PAGE)).rejects.toThrow(/Connect your Notion workspace/)
+    await expect(client.syncPage(PAGE)).rejects.toMatchObject({ code: 'not_connected' })
   })
 
   it("passes on the backend's error otherwise", async () => {

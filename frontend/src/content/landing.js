@@ -2,12 +2,24 @@
 import check from '../assets/icons/check.png'
 import gear from '../assets/icons/gear.png'
 import technologistAlt from '../assets/icons/technologist-alt.png'
+// Light-mode recording for now. The dark one (autolang-demo.mp4 + poster) sits next
+// to it for when the site gets a light/dark toggle.
+import demoVideo from '../assets/demo/autolang-demo-light.mp4'
+import demoPoster from '../assets/demo/autolang-demo-light-poster.jpg'
 
+// Absolute (/#…) so they also work from other pages such as /faq.
 export const navLinks = [
-  { label: 'About Us', href: '#about' },
-  { label: 'Support', href: '#support' },
-  { label: 'Resources', href: '#resources' },
+  { label: 'About Us', href: '/#about' },
+  { label: 'Demo', href: '/#demo' },
+  { label: 'Playground', href: '/#playground' },
 ]
+
+export const faqLink = { label: 'FAQ', href: '/faq' }
+
+export const githubLinks = {
+  repo: 'https://github.com/durva7px/Notion-Autolang',
+  profile: 'https://github.com/durva7px',
+}
 
 export const hero = {
   headingLines: ['You write code.', 'We get the'],
@@ -37,16 +49,18 @@ export const hero = {
 export const steps = [
   {
     number: '01',
-    title: 'Sign Up to Authorize Workspace',
-    icon: check,
-    description: 'Authorize AutoLang with Notion. No manual API-key setup.',
-    action: 'connect-notion',
+    title: 'Download the extension',
+    icon: gear,
+    description: 'Add AutoLang to Chrome and pin it to your toolbar.',
   },
   {
     number: '02',
-    title: 'Download extension and enable',
-    icon: gear,
-    description: 'Setup browser extension to let AutoLang access your code blocks',
+    title: 'Connect Notion from the extension',
+    icon: check,
+    description: 'Click the AutoLang icon, then Connect Notion. No manual API-key setup.',
+    // Also the card's anchor. The extension's sign-in lands on the website's
+    // "connected" page, which marks this step done.
+    id: 'connect-notion',
   },
   {
     number: '03',
@@ -56,9 +70,15 @@ export const steps = [
   },
 ]
 
+export const demo = {
+  video: demoVideo,
+  poster: demoPoster,
+  label:
+    "Demo: writing a developer guide in Notion while AutoLang sets each code block's language",
+}
+
 export const playground = {
-  language: 'Python',
-  hint: 'Try writing any code snippet in the code block',
+  //hint: 'Try writing any code snippet in the code block',
   sample: `def calculate_average(numbers):
 
   total = sum(numbers)
@@ -69,14 +89,3 @@ export const playground = {
 
   return total / count`,
 }
-
-export const footerLinks = [
-  [
-    { label: 'Support', href: '#support' },
-    { label: 'Contact Us', href: '#contact' },
-  ],
-  [
-    { label: 'FAQ', href: '#faq' },
-    { label: 'Help', href: '#help' },
-  ],
-]

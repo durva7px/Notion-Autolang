@@ -5,6 +5,7 @@ import userRoutes from "./routes/user.routes.js";
 import { createAuthRouter, SESSION_COOKIE } from "./routes/auth.js";
 import { createUiRouter } from "./routes/ui.js";
 import { createPagesRouter } from "./routes/pages.js";
+import { createDetectRouter } from "./routes/detect.js";
 import { createNotionClient as defaultCreateNotionClient } from "./services/notion.js";
 import { createMemoryBlockStateStore } from "./services/block-state-store.js";
 
@@ -19,9 +20,24 @@ export function createApp({
   config,
   fetch = globalThis.fetch,
   createNotionClient = defaultCreateNotionClient,
-  blockStates = createMemoryBlockStateStore()
+  blockStates = createMemoryBlockStateStore(),
+  detectRateLimit
 }) {
   const app = express();
+  // Behind a proxy (e.g. a hosting platform), so req.ip is the visitor, not the proxy.
+  if (config.trustProxy !== undefined) app.set("trust proxy", config.trustProxy);
+  const confidenceThreshold = config.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD;
+
+  // Public and stateless, so it sits before the session middleware.
+  app.use(
+    "/detect",
+    express.json(),
+    createDetectRouter({
+      confidenceThreshold,
+      allowedOrigins: config.frontendUrls,
+      rateLimit: detectRateLimit
+    })
+  );
 
   app.use(express.json());
   app.use(
@@ -44,7 +60,7 @@ export function createApp({
   app.use("/pages", createPagesRouter({
       createNotionClient,
       blockStates,
-      confidenceThreshold: config.confidenceThreshold ?? DEFAULT_CONFIDENCE_THRESHOLD
+      confidenceThreshold
     }));
   app.use("/", createUiRouter({ createNotionClient }));
 

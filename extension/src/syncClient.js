@@ -9,7 +9,7 @@ export function createSyncClient({ apiUrl, fetch = globalThis.fetch }) {
       const body = await response.json().catch(() => ({}))
 
       if (response.status === 401) {
-        throw new Error(`Connect your Notion workspace first: open ${apiUrl}/auth/notion`)
+        throw Object.assign(new Error('Connect your Notion workspace first'), { code: 'not_connected' })
       }
       if (!response.ok) {
         throw new Error(`${response.status}: ${body.error ?? 'Sync failed'}`)

@@ -4,6 +4,22 @@
   right: -83px;
 }
 
+.status {
+  min-height: 1.5em;
+  margin: 14px 0 0 27px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--color-ink-muted);
+}
+
+.status[data-state='done'] {
+  color: var(--color-accent-magenta);
+}
+
+.status[data-state='error'] {
+  color: var(--color-accent-amber);
+}
+
 .hint {
   margin: 11px 0 0 27px;
   font-family: var(--font-mono);
@@ -15,6 +31,11 @@
 @media (max-width: 900px) {
   .cursor {
     display: none;
+  }
+
+  .status {
+    margin-left: 4px;
+    font-size: 14px;
   }
 
   .hint {

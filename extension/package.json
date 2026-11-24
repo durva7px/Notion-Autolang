@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "preview:popup": "vite --port 5180 --strictPort"
   },
   "devDependencies": {
     "jsdom": "^31.0.1",

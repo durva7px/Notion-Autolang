@@ -2,36 +2,32 @@ import GradientPill from '../ui/GradientPill.jsx'
 import Divider from '../ui/Divider.jsx'
 import alien from '../../assets/icons/alien.png'
 import technologist from '../../assets/icons/technologist.png'
-import { footerLinks } from '../../content/landing.js'
+import { githubLinks } from '../../content/landing.js'
 import styles from './Footer.module.css'
 
 const YEAR = new Date().getFullYear()
+const external = { target: '_blank', rel: 'noopener noreferrer' }
 
+/** GitHub repository · copyright · the developer's GitHub profile. */
 export default function Footer() {
   return (
     <footer className={styles.footer}>
       <Divider />
       <div className={styles.inner}>
-        <div className={styles.links}>
-          {footerLinks.map((column, i) => (
-            <ul key={i} className={styles.column}>
-              {column.map((link) => (
-                <li key={link.label}>
-                  <a href={link.href}>{link.label}</a>
-                </li>
-              ))}
-            </ul>
-          ))}
-        </div>
+        <GradientPill
+          href={githubLinks.repo}
+          icon={alien}
+          variant="slate"
+          trailingArrow
+          className={styles.start}
+          {...external}
+        >
+          GitHub Repository
+        </GradientPill>
         <p className={styles.copyright}>All rights reserved © {YEAR}</p>
-        <div className={styles.ctas}>
-          <GradientPill href="#github" icon={alien} variant="slate" trailingArrow>
-            GitHub Repository
-          </GradientPill>
-          <GradientPill href="#connect" icon={technologist} trailingArrow>
-            Developer Connect
-          </GradientPill>
-        </div>
+        <GradientPill href={githubLinks.profile} icon={technologist} trailingArrow className={styles.end} {...external}>
+          Developer Connect
+        </GradientPill>
       </div>
     </footer>
   )

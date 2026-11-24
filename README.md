@@ -6,7 +6,7 @@ The repo is an npm workspace with three parts:
 
 | Folder | What it is |
 |---|---|
-| `backend/` | Express API: Notion sign-in (OAuth), language detection, and `POST /pages/:pageId/sync`, which sets the language of new and edited code blocks |
+| `backend/` | Express API: Notion sign-in (OAuth), language detection, `POST /pages/:pageId/sync`, which sets the language of new and edited code blocks, and the public `POST /detect` behind the website's playground |
 | `extension/` | Chrome extension: watches Notion pages and asks the backend to sync when you pause typing |
 | `frontend/` | The website (React + Vite), deployed on Vercel |
 
@@ -57,21 +57,21 @@ npm start --prefix backend
 
 It runs on <http://localhost:3000>. Check <http://localhost:3000/health>.
 
-### 5. Connect your Notion workspace
-
-In Chrome, open <http://localhost:3000/auth/notion>, choose the pages AutoLang may use, and approve.
-
-The backend keeps sessions in memory for now, so **repeat this step after every backend restart**.
-
-### 6. Load the extension
+### 5. Load the extension
 
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Click **Load unpacked** and choose the `extension/` folder.
-3. **Reload any Notion tabs that were already open.** Chrome doesn't add an extension to tabs opened before it was loaded.
+3. Pin it from Chrome's puzzle-piece menu so its icon stays visible.
+
+### 6. Connect your Notion workspace
+
+Click the AutoLang icon, then **Connect Notion**. Choose the pages AutoLang may use and approve. The popup and the icon's badge show whether you're connected; a `!` on the icon means something needs you.
+
+The backend keeps sessions in memory for now, so **connect again after every backend restart**. The popup will show **Not connected**.
 
 ### 7. Try it
 
-On a Notion page you shared in step 5, add a code block and type some code. About 2 seconds after you stop, its language changes.
+On a Notion page you shared in step 6, add a code block and type some code. About 2 seconds after you stop, its language changes.
 
 To see what the extension is doing, click **service worker** on its card in `chrome://extensions`. Changes and errors are logged as `[AutoLang] …`.
 
@@ -83,7 +83,7 @@ More detail: [extension/README.md](extension/README.md).
 npm run dev --prefix frontend
 ```
 
-It runs on <http://localhost:5173>. Its **Sign Up to Authorize Workspace** step uses the local backend unless `VITE_API_URL` is set.
+It runs on <http://localhost:5173>. Its **Try again** link (shown after a failed Notion sign-in) uses the local backend unless `VITE_API_URL` is set. Signing in itself happens from the extension. It has a FAQ page at `/faq`; `frontend/vercel.json` sends every path to the app so `/faq` also works when deployed. The demo video in its "See how it works!" section is rendered from `demo-video/` (see its README).
 
 ## Tests
 
@@ -99,7 +99,6 @@ What each test checks: [backend/tests.md](backend/tests.md).
 
 ## Known limitations
 
-- **No extension UI yet.** You can't see from the extension whether you're connected; check the service worker log.
 - **Restarting the backend signs you out** and forgets which code blocks it has already seen.
 - **The confidence threshold** (`CONFIDENCE_THRESHOLD`, default 0.4) hasn't been tuned. Short snippets can be skipped.
 - **Local only.** The extension talks to `http://localhost:3000` (`extension/src/config.js`).

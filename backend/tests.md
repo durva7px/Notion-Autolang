@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 82 tests, 10 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 21 tests, 3 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 82 tests, 10 files. Frontend: 12 tests, 1 file ([see below](#frontend-frontendsrcapptestjsx)). Extension: 54 tests, 6 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -20,7 +20,7 @@ We agreed to test at three seams only. Each is a public interface; tests never r
 | **Page processor** (`previewPage`, `applyLanguageChanges`) | detection, pagination, nesting | the Notion SDK client (`tests/fake-notion.js`) |
 | **Block state store** (`get`, `set`) | the in-memory store | nothing |
 | **Website** (`<App />` in `frontend/`, rendered for a given URL) | React components, routing on the query string | nothing (jsdom stands in for the browser; `VITE_API_URL` is stubbed) |
-| **Extension modules** (`notionPage`, `syncScheduler`, `syncClient` in `extension/src/`) | URL parsing, DOM checks, timing logic | timers (vitest fake timers), `fetch`, the DOM (jsdom) |
+| **Extension modules** (`notionPage`, `syncScheduler`, `syncClient`, `connection`, `status`, `popupView` in `extension/src/`) | URL parsing, DOM checks, timing logic, badge and popup rendering | timers (vitest fake timers), `fetch`, `chrome.storage.session` (an in-memory store), the DOM (jsdom) |
 
 Plus one **smoke test** that boots `server.js` in plain Node, because vitest's module loader hides ESM/CommonJS import errors that crash the real server.
 
@@ -176,6 +176,25 @@ Each test syncs a fake Notion page, then changes it the way a user would (`edit(
 | tries again next time when Notion fails to update a block | `failed` with Notion's error, then `updated` on the next sync. |
 | returns Notion's error when the page can't be read | 404 passes through. |
 
+## `tests/detect.test.js`: `POST /detect` (the website's playground)
+
+Public: no Notion connection, no cookies. Same detector and confidence threshold as sync, so the playground shows what AutoLang would do in Notion.
+
+| Test | Checks |
+|---|---|
+| detects the language of a snippet with the same confidence check as sync | A Python snippet gives `200 { language: "python", confidence, confident: true }` with confidence ≥ 0.4. |
+| says when it is not confident enough to change a block | `const a = 1;` gives `confident: false`. |
+| returns no language for empty or unrecognisable code | `""`, whitespace and prose give `{ language: null, confidence: 0, confident: false }`. |
+| uses the configured confidence threshold | Threshold 0.99 still names Python but with `confident: false`. |
+| rejects a request without a code string | Missing, number and array `code` give 400. |
+| rejects snippets longer than 20,000 characters | 413. |
+| lets the website read the response | A `FRONTEND_URLS` origin gets `Access-Control-Allow-Origin` (no credentials). |
+| answers the browser's preflight for JSON requests | `OPTIONS` gives 204 allowing `POST` and `Content-Type`. |
+| does not open the endpoint to other sites | Another origin gets no CORS header. |
+| does not add CORS headers to other routes | `/health` stays without CORS. |
+| answers 429 once one visitor sends too many requests in a minute | Past the per-IP limit: 429 with `Retry-After`. Default 60 a minute. |
+| lets requests through again after the window | With an injected clock, the limit resets after the window. |
+
 ## `tests/pages.test.js`: `/pages` API
 
 | Test | Checks |
@@ -193,12 +212,19 @@ Each test syncs a fake Notion page, then changes it the way a user would (`edit(
 
 Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. Each test sets the browser URL, renders `<App />`, and queries by role and text like a user would.
 
-### Step 01: Sign Up to Authorize Workspace
+### How to Use
 | Test | Checks |
 |---|---|
-| links to the backend Notion auth, asking to come back to this site | The step 01 card is a link to `<VITE_API_URL>/auth/notion?return_to=<this site's origin>`. |
-| defaults to the local backend when no API URL is configured | With no `VITE_API_URL` it points at `http://localhost:3000`. |
-| leaves the other steps as plain cards | Steps 02 and 03 aren't links. |
+| starts with downloading the extension, then connecting Notion from it | The steps are, in order: Download the extension, Connect Notion from the extension, Start writing code. |
+| no longer sends people to Notion auth from the website | No step links to `/auth/notion`; connecting happens in the extension's popup. |
+
+### Demo video
+| Test | Checks |
+|---|---|
+| plays the recorded demo in the demo section | `#demo` has a `<video>` with the bundled `autolang-demo….mp4` and a poster. |
+| loops silently inline so it can autoplay, with controls to pause it | The video is muted, looping, `playsinline`, has controls and autoplays. |
+| does not autoplay for people who prefer reduced motion | With `prefers-reduced-motion: reduce` it waits for a click. |
+| describes the video for screen readers | The video has an accessible name. |
 
 ### Returning from Notion auth
 | Test | Checks |
@@ -206,8 +232,11 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 | shows the connected message with the workspace name | `?notion=connected` shows the "Notion workspace connected" heading and the workspace name. |
 | offers an Open workspace button that opens the connected workspace | The button links to the `open` URL in a new tab with `rel=noopener`. |
 | never links anywhere but notion.so, whatever the URL says | A `javascript:` `open` value becomes `https://www.notion.so/` (the query string is user-controlled). |
-| points to the next step: installing the extension | Step 02 is shown under "What's next?". |
+| marks step 02 (connecting from the extension) as done | The page says "Step 02 complete" (the extension's sign-in lands here). |
+| points only to what is left: writing code in Notion | Only step 03 is shown under "What's next?"; steps 01 and 02 are not. |
 | explains a cancelled authorization and lets the user try again | `reason=access_denied` shows a "couldn't connect" heading, a cancelled message and a **Try again** link back to auth. |
+| sends Try again to the configured backend, asking to come back to this site | **Try again** links to `<VITE_API_URL>/auth/notion?return_to=<this site's origin>`. |
+| defaults Try again to the local backend when no API URL is configured | With no `VITE_API_URL` it points at `http://localhost:3000`. |
 | shows a generic message for other errors | Any other reason shows "something went wrong". |
 | shows the normal landing page without auth parameters | No `notion` param renders the landing page. |
 
@@ -217,9 +246,54 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 | keeps Notion's current app.notion.com links | `https://app.notion.com/p/…` is kept as the button's link. |
 | rejects look-alike hosts | `https://notion.com.evil.example/…` becomes `https://www.notion.so/`. |
 
+## Frontend: `frontend/src/components/sections/Playground.test.jsx`
+
+Renders `<Playground />` with `fetch` stubbed (and a short or fake-timer debounce).
+
+| Test | Checks |
+|---|---|
+| detects the sample snippet live when the page loads | Starts as Plain Text, POSTs the sample to `<VITE_API_URL>/detect` without cookies, then shows Python and "Detected Python". |
+| needs no extension or Notion sign-in | No `Authorization` header. |
+| re-detects what the visitor types | Typing TypeScript sends the new code and shows TypeScript. |
+| waits for a pause in typing before asking | A burst of edits sends one request, with the last code. |
+| leaves the language alone when it isn't confident, like in Notion | `confident: false` keeps the label and says "not confident enough". |
+| asks for code when the block is empty | `language: null` asks the visitor to type some code. |
+| shows only the answer for the latest code when replies arrive out of order | A slow earlier reply doesn't overwrite a newer one. |
+| says so when AutoLang can't be reached, and keeps the language | A network error shows "can't reach AutoLang". |
+| asks the visitor to slow down when rate limited | 429 shows "too many tries". |
+| shows Notion's language names the way Notion's menu does | `languageLabel` gives TypeScript, JavaScript, C++, C#, SQL, Plain Text, Python, Elixir. |
+
+## Frontend: `frontend/src/Navigation.test.jsx`
+
+Header and footer, checked on both `/` and `/faq`. `fetch` is stubbed because the landing page's playground calls the backend.
+
+| Test | Checks |
+|---|---|
+| links to About Us, Demo and Playground sections of the home page | The main nav links to `/#about`, `/#demo` and `/#playground`, so they work from any page. |
+| has FAQ where Account used to be | A FAQ link to `/faq`; no Account link. |
+| no longer shows Support or Resources | Neither link is in the header. |
+| stays flat at the top of the page and lifts off the content once scrolled | The sticky header's `data-scrolled` turns on after scrolling and off again at the top (it adds a shadow and slims the bar). |
+| starts lifted when the page opens part-way down, e.g. at /#demo | Already scrolled on load gives `data-scrolled="true"`. |
+| scrolls to the section named in the link, e.g. /#demo from the FAQ | Opening `/#demo` scrolls the demo section into view once the page has rendered. |
+| links to the GitHub repository in a new tab | **GitHub Repository** goes to `github.com/durva7px/Notion-Autolang` with `target=_blank` and `rel=noopener`. |
+| links Developer Connect to the developer's GitHub profile in a new tab | **Developer Connect** goes to `github.com/durva7px`, same attributes. |
+| puts the two links on either side of the copyright | Document order: repository, copyright, profile. |
+| drops Help, Support and Contact Us | None of these links are in the footer. |
+
+## Frontend: `frontend/src/pages/FaqPage.test.jsx`
+
+| Test | Checks |
+|---|---|
+| has its own heading and not the landing page | `/faq` shows "Frequently asked questions" and not How to Use. |
+| answers at least 10 questions | Every question in `content/faq.js` is on the page (there are 15). |
+| covers privacy and Notion workspace access | Questions about storing code, workspace access, the access token and disconnecting exist. |
+| shows an answer when its question is opened | Clicking a question opens its `<details>`. |
+| gives every question a link-able anchor | Each question has a unique `id`, so `/faq#store-code` links straight to it. |
+| sets the browser tab title | The tab reads "FAQ · Notion AutoLang". |
+
 ## Extension: `extension/tests/`
 
-Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `content.js` and `background.js` are thin Chrome glue and are checked by hand (see "Not covered").
+Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `content.js`, `background.js`, `popup.html` and `popup.js` are thin Chrome glue and are checked by hand (see "Not covered").
 
 ### `notionPage.test.js`
 | Test | Checks |
@@ -244,8 +318,54 @@ Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `
 | Test | Checks |
 |---|---|
 | posts to the page's sync endpoint with the session cookie and returns the results | `POST <api>/pages/<id>/sync` with `credentials: 'include'`. |
-| explains when the user still needs to connect Notion | 401 becomes "Connect your Notion workspace first: open …/auth/notion". |
+| explains when the user still needs to connect Notion | 401 becomes "Connect your Notion workspace first" with `code: 'not_connected'`. |
 | passes on the backend's error otherwise | e.g. `404: Could not find page`. |
+
+### `connection.test.js`
+| Test | Checks |
+|---|---|
+| reports the connected workspace | `GET /auth/status` with the cookie gives `{ state: 'connected', workspaceName }`. |
+| reports when no workspace is connected | `{ state: 'disconnected' }`. |
+| reports the backend as offline when it can't be reached | A network error gives `{ state: 'offline' }`. |
+| reports the backend as offline when it answers with an error | A 500 gives `offline`. |
+| gives the address that starts Notion sign-in | `<api>/auth/notion`. |
+| disconnects through the backend | `POST /auth/disconnect` with the cookie. |
+| fails loudly when disconnecting fails | The backend's error is thrown. |
+
+### `status.test.js`
+| Test | Checks |
+|---|---|
+| (badge) shows nothing when connected and syncing fine | Empty badge; tooltip names the workspace. |
+| (badge) asks to connect when no workspace is connected | `!` and "connect your Notion workspace". |
+| (badge) says when the backend is not running | `!` and "can't reach the backend". |
+| (badge) flags a failed sync even while connected | `!` with the error in the tooltip. |
+| (badge) uses different colours for "needs you" and "something failed" | Magenta vs amber. |
+| re-syncs open pages when the user goes from not connected to connected | `onConnected` fires once. This is the fix for pages opened before signing in. |
+| remembers the previous state across service worker restarts | The view is kept in the store, so a restart between "not connected" and "connected" still re-syncs. |
+| doesn't re-sync when it was already connected | No `onConnected`. |
+| doesn't re-sync the first time it ever checks | No previous state, no `onConnected`. |
+| reports every change so the badge can update | `onChange` gets each new view. |
+| records sync results | `lastSync` counts `updated` blocks. |
+| records sync failures | `lastSync` keeps the error. |
+| marks the workspace as disconnected when a sync is refused for that reason | A `not_connected` error flips the connection. |
+| then re-syncs once the user connects again | Reconnecting fires `onConnected`. |
+| checks the connection first when a sync finishes / fails | Before any status check, a sync result triggers one. |
+
+### `popupView.test.js`
+| Test | Checks |
+|---|---|
+| says it is checking before the status is known | "Checking…". |
+| shows the connected workspace and a Disconnect button | Heading, workspace name; the button calls `disconnect`. |
+| tells the user to open a Notion page when nothing has synced yet | Hint text. |
+| shows the last sync | "Last sync 3 min ago: 2 blocks updated". |
+| shows a recent sync as just now, and one block in the singular | "just now", "1 block". |
+| shows a failed sync with its reason | "Last sync failed: 429: rate limited". |
+| offers Connect Notion when no workspace is connected | The button calls `connect`; no Disconnect. |
+| explains how to start the backend when it is offline, with a retry | Shows `npm start --prefix backend`; Try again calls `retry`. |
+| replaces what was shown before | Re-rendering leaves one heading. |
+| shows workspace names as text, never as markup | A name containing `<img onerror>` creates no element. |
+
+To look at every popup state at once: `npm run preview:popup` in `extension/`, then open `http://localhost:5180/dev/popup-preview.html`.
 
 ---
 
@@ -254,5 +374,5 @@ Run from `extension/` with `npm test`. Stack: vitest + jsdom. `manifest.json`, `
 - **The real Notion OAuth round trip.** It needs a person to sign in on notion.com. To check it by hand, run `npm start`, open `http://localhost:3000`, click **Connect Notion**, approve, and land on the connected page.
 - **`services/notion.js`** is a one-line wrapper around the SDK `Client`. The smoke test covers that it loads in Node.
 - **Detector accuracy.** That's measured, not asserted: `npm run compare-detectors` (built-in samples) or `npm run compare-detectors -- notion` (blocks on `NOTION_PAGE_ID`).
-- **The extension inside Chrome on a real Notion page** (`manifest.json`, `content.js`, `background.js`, and that `.notion-code-block` is still Notion's class). Check by hand with the steps in `extension/README.md`.
+- **The extension inside Chrome on a real Notion page** (`manifest.json`, `content.js`, `background.js`, `popup.js`, the badge, adding itself to tabs that were already open, and that `.notion-code-block` is still Notion's class). Check by hand with the steps in `extension/README.md`.
 - **The confidence threshold's value.** 0.4 is a starting point. Tune it by running the detectors over your own blocks.

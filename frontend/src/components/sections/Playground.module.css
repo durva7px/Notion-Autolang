@@ -18,28 +18,17 @@
   color: rgba(55, 53, 47, 0.65);
 }
 
-.status {
-  min-height: 32px;
-  margin: 16px 12px 0;
-}
-
-/* Notion's heading 3. */
-.result {
-  margin: 0;
-  padding: 3px 2px;
-  font-family: var(--font-notion);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: rgb(55, 53, 47);
-}
-
-.status[data-state='detecting'] .result {
-  color: rgba(55, 53, 47, 0.65);
-}
-
-.status[data-state='error'] .result {
-  color: var(--color-accent-amber);
+/* Read by screen readers only; the popup is the visible result. Takes no space. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @media (max-width: 900px) {
@@ -47,13 +36,8 @@
     display: none;
   }
 
-  .caption,
-  .status {
+  .caption {
     margin-left: 0;
     margin-right: 0;
-  }
-
-  .result {
-    font-size: 18px;
   }
 }

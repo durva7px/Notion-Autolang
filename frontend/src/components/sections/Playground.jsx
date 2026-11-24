@@ -4,73 +4,97 @@ import Cursor from '../ui/Cursor.jsx'
 import CodeBlock from './CodeBlock.jsx'
 import { playground } from '../../content/landing.js'
 import { detectLanguage, languageLabel } from '../../lib/detect.js'
+import { placeholderFor } from '../../lib/placeholder.js'
 import styles from './Playground.module.css'
 
 const ERRORS = {
-  rate_limited: 'Too many tries in a minute. Wait a moment, then keep typing.',
-  unreachable: "The playground can't reach AutoLang right now. Try again in a moment.",
-  failed: "The playground can't reach AutoLang right now. Try again in a moment.",
+  rate_limited: 'Too many tries. Wait a moment',
+  unreachable: "Can't reach AutoLang right now",
+  failed: "Can't reach AutoLang right now",
 }
 
-function statusText(result) {
-  switch (result.state) {
-    case 'detecting':
-      return 'Detecting…'
-    case 'error':
-      return ERRORS[result.kind] ?? ERRORS.failed
-    case 'done': {
-      const { language, confidence, confident } = result
-      if (!language) return 'Type some code and AutoLang will pick its language.'
-      const percent = Math.round(confidence * 100)
-      return confident
-        ? `Detected ${languageLabel(language)} · ${percent}% confident`
-        : `Not confident enough to change it yet (${languageLabel(language)}, ${percent}%). Keep typing.`
-    }
-    default:
-      return ''
-  }
-}
+// How long the popup stays, matching its CSS animation.
+const POPUP_MS = { detected: 2300, error: 4000 }
 
 /**
  * Live detection without the extension or a Notion connection. Like in Notion,
- * the block starts as Plain Text and only changes when AutoLang is confident.
+ * the block starts as Plain Text and only changes when AutoLang is confident;
+ * the result pops up beside the language label, as in the demo video.
  */
 export default function Playground({ debounceMs = 600 }) {
   const [language, setLanguage] = useState('plain text')
-  const [result, setResult] = useState({ state: 'detecting' })
+  const [popup, setPopup] = useState(null)
+  // For screen readers, since the popup is visual only.
+  const [announcement, setAnnouncement] = useState('')
   const timer = useRef()
+  const popupTimer = useRef()
   const inFlight = useRef()
 
-  function detectAfterPause(code) {
+  function showPopup(kind, text) {
+    clearTimeout(popupTimer.current)
+    setPopup({ kind, text })
+    popupTimer.current = setTimeout(() => setPopup(null), POPUP_MS[kind])
+  }
+
+  function hidePopup() {
+    clearTimeout(popupTimer.current)
+    setPopup(null)
+  }
+
+  function handleCodeChange(code) {
+    hidePopup()
     clearTimeout(timer.current)
+    if (!code.trim()) {
+      inFlight.current?.abort()
+      inFlight.current = undefined
+      setAnnouncement('')
+      return
+    }
     timer.current = setTimeout(() => detect(code), debounceMs)
+  }
+
+  function handleLanguageChange(value) {
+    hidePopup()
+    setLanguage(value)
   }
 
   async function detect(code) {
     inFlight.current?.abort()
     const request = new AbortController()
     inFlight.current = request
-    setResult({ state: 'detecting' })
     try {
       const answer = await detectLanguage(code, { signal: request.signal })
       if (inFlight.current !== request) return
-      setResult({ state: 'done', ...answer })
-      if (answer.confident) setLanguage(answer.language)
+      const { language: found, confidence, confident } = answer
+      if (confident) {
+        setLanguage(found)
+        const text = `AutoLang detected ${languageLabel(found)}`
+        showPopup('detected', text)
+        setAnnouncement(text)
+      } else if (found) {
+        setAnnouncement(
+          `Not confident enough to change it yet (${languageLabel(found)}, ${Math.round(confidence * 100)}%). Keep typing.`,
+        )
+      } else {
+        setAnnouncement('Type some code and AutoLang will pick its language.')
+      }
     } catch (error) {
       if (inFlight.current !== request || error.name === 'AbortError') return
-      setResult({ state: 'error', kind: error.kind })
+      const text = ERRORS[error.kind] ?? ERRORS.failed
+      showPopup('error', text)
+      setAnnouncement(text)
     }
   }
 
-  // Detect the sample once on load; stop pending work on unmount.
-  useEffect(() => {
-    detectAfterPause(playground.sample)
-    return () => {
+  // Stop pending work on unmount.
+  useEffect(
+    () => () => {
       clearTimeout(timer.current)
+      clearTimeout(popupTimer.current)
       inFlight.current?.abort()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    },
+    [],
+  )
 
   return (
     <Section
@@ -80,16 +104,17 @@ export default function Playground({ debounceMs = 600 }) {
     >
       <figure className={styles.figure}>
         <CodeBlock
-          initialCode={playground.sample}
-          language={languageLabel(language)}
-          onCodeChange={detectAfterPause}
+          language={language}
+          onLanguageChange={handleLanguageChange}
+          popup={popup}
+          placeholder={placeholderFor(language)}
+          onCodeChange={handleCodeChange}
         />
         <figcaption className={styles.caption}>{playground.caption}</figcaption>
       </figure>
-      {/* Live region around a Notion-style heading 3, so updates are announced. */}
-      <div className={styles.status} role="status" data-state={result.state}>
-        <h3 className={styles.result}>{statusText(result)}</h3>
-      </div>
+      <p className={styles.srOnly} role="status">
+        {announcement}
+      </p>
     </Section>
   )
 }

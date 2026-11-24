@@ -79,7 +79,7 @@ export const demo = {
 
 export const playground = {
   //hint: 'Try writing any code snippet in the code block',
-  sample: `// write your code here and AutoLang will detect the language`,
+  // The editor's placeholder (a Python example in a comment) is built in lib/placeholder.js.
   // Shown under the block, like a Notion code block caption.
   caption: 'Write your code here and AutoLang will detect the language',
 }

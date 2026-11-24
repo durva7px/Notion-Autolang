@@ -24,7 +24,12 @@ export default function Footer() {
         >
           GitHub Repository
         </GradientPill>
-        <p className={styles.copyright}>All rights reserved © {YEAR}</p>
+        <div className={styles.middle}>
+          <p className={styles.copyright}>All rights reserved © {YEAR}</p>
+          <a className={styles.privacy} href="/privacy">
+            Privacy policy
+          </a>
+        </div>
         <GradientPill href={githubLinks.profile} icon={technologist} trailingArrow className={styles.end} {...external}>
           Developer Connect
         </GradientPill>

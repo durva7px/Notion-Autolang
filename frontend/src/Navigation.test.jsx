@@ -19,7 +19,7 @@ afterEach(() => vi.unstubAllGlobals())
 const header = () => screen.getByRole('banner')
 const footer = () => screen.getByRole('contentinfo')
 
-describe.each(['/', '/faq'])('Header on %s', path => {
+describe.each(['/', '/faq', '/privacy'])('Header on %s', path => {
   it('links to About Us, Demo and Playground sections of the home page', () => {
     renderAt(path)
     const nav = within(header()).getByRole('navigation', { name: 'Main' })
@@ -88,7 +88,15 @@ describe('Arriving on the home page from another page', () => {
   })
 })
 
-describe.each(['/', '/faq'])('Footer on %s', path => {
+describe.each(['/', '/faq', '/privacy'])('Footer on %s', path => {
+  it('links to the privacy policy in the same tab', () => {
+    renderAt(path)
+    const link = within(footer()).getByRole('link', { name: /Privacy policy/i })
+
+    expect(link).toHaveAttribute('href', '/privacy')
+    expect(link).not.toHaveAttribute('target')
+  })
+
   it('links to the GitHub repository in a new tab', () => {
     renderAt(path)
     const link = within(footer()).getByRole('link', { name: /GitHub Repository/i })

@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "preview:popup": "vite --port 5180 --strictPort"
+    "preview:popup": "vite --port 5180 --strictPort",
+    "build:store": "node scripts/build-store.js"
   },
   "devDependencies": {
     "jsdom": "^31.0.1",

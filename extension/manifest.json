@@ -29,6 +29,7 @@
     "http://localhost:3000/*",
     "https://www.notion.so/*",
     "https://*.notion.so/*",
-    "https://app.notion.com/*"
+    "https://app.notion.com/*",
+    "https://zujvelvm42.execute-api.ap-southeast-2.amazonaws.com/*"
   ]
 }

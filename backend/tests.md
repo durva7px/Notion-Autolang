@@ -7,7 +7,7 @@ npm test            # run once
 npm run test:watch  # re-run on save
 ```
 
-Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 96 tests, 6 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
+Stack: [vitest](https://vitest.dev) + [supertest](https://github.com/ladjs/supertest). 110 tests, 14 files. Frontend: 97 tests, 6 files ([see below](#frontend-frontendsrcapptestjsx)). Extension: 63 tests, 7 files ([see below](#extension-extensiontests)).
 
 ## Seams under test
 
@@ -253,6 +253,7 @@ Run from `frontend/` with `npm test`. Stack: vitest + jsdom + Testing Library. E
 | Test | Checks |
 |---|---|
 | starts with downloading the extension, then connecting Notion from it | The steps are, in order: Download the extension, Connect Notion from the extension, Start writing code. |
+| links the download step to the Chrome Web Store listing in a new tab | Step 01 is a link to the store listing with `target="_blank"` and `rel="noopener noreferrer"`. |
 | no longer sends people to Notion auth from the website | No step links to `/auth/notion`; connecting happens in the extension's popup. |
 
 ### Demo video

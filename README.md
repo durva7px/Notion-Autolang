@@ -6,6 +6,12 @@ Sets the language of Notion code blocks automatically while you write.
 
 ▶ **[Watch the full demo](https://notion-autolang.vercel.app/#demo)** on the website.
 
+## Install
+
+Get AutoLang from the **[Chrome Web Store](https://chromewebstore.google.com/detail/nnmaabjpgbadihiihdillmfnefjdfheh)**, pin it to your toolbar, then click its icon and choose **Connect Notion**. Pick the pages AutoLang may use, and code blocks on those pages get their language set as you write.
+
+The rest of this README is for running AutoLang from source.
+
 The repo is an npm workspace with three parts:
 
 | Folder | What it is |
@@ -62,6 +68,8 @@ npm start --prefix backend
 It runs on <http://localhost:3000>. Check <http://localhost:3000/health>.
 
 ### 5. Load the extension
+
+If you also have AutoLang from the Chrome Web Store, turn that copy off while you test, so only one copy watches your pages. To make this copy use your local backend, set `API_URL` in `extension/src/config.js` to `http://localhost:3000` (it points at the deployed backend by default) and don't commit that change.
 
 1. Open `chrome://extensions` and turn on **Developer mode**.
 2. Click **Load unpacked** and choose the `extension/` folder.

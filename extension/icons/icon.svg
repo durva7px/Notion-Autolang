@@ -1,15 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <!-- Notion AutoLang icon: a code mark on the site's magenta-to-peach gradient. Source for icon-*.png. -->
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#bf22c7"/>
-      <stop offset="1" stop-color="#f0845c"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
-  <g fill="none" stroke="#ffffff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round">
-    <polyline points="44,40 20,64 44,88"/>
-    <polyline points="84,40 108,64 84,88"/>
-    <line x1="72" y1="34" x2="56" y2="94"/>
+  <!-- Notion AutoLang icon: a pink </> on charcoal, traced from icon-128.png. Source for icon-16/32/48.png. -->
+  <rect width="128" height="128" rx="18" fill="#343434"/>
+  <g fill="#fa95ff">
+    <polygon points="35,47 47.5,47 39.5,65 47.5,83 35,83 27,65"/>
+    <polygon points="93,47 80.5,47 88.5,65 80.5,83 93,83 101,65"/>
+    <polygon points="65,31 77,31 64,99 52,99"/>
   </g>
 </svg>

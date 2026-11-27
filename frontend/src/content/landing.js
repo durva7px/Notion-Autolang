@@ -21,6 +21,8 @@ export const githubLinks = {
   profile: 'https://github.com/durva7px',
 }
 
+export const chromeWebStoreUrl = 'https://chromewebstore.google.com/detail/nnmaabjpgbadihiihdillmfnefjdfheh'
+
 export const hero = {
   headingLines: ['You write code.', 'We get the'],
   typedWord: {
@@ -51,7 +53,8 @@ export const steps = [
     number: '01',
     title: 'Download the extension',
     icon: gear,
-    description: 'Add AutoLang to Chrome and pin it to your toolbar.',
+    description: 'Add AutoLang to Chrome from the Chrome Web Store and pin it to your toolbar.',
+    href: chromeWebStoreUrl,
   },
   {
     number: '02',

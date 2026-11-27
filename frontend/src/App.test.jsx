@@ -26,6 +26,20 @@ describe('How to Use', () => {
     expect(third).toMatch(/Start writing code/i)
   })
 
+  it('links the download step to the Chrome Web Store listing in a new tab', () => {
+    renderAt('/')
+
+    const download = within(document.getElementById('how-to-use')).getByRole('link', {
+      name: /Download the extension/i,
+    })
+    expect(download).toHaveAttribute(
+      'href',
+      'https://chromewebstore.google.com/detail/nnmaabjpgbadihiihdillmfnefjdfheh',
+    )
+    expect(download).toHaveAttribute('target', '_blank')
+    expect(download).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
   it('no longer sends people to Notion auth from the website', () => {
     renderAt('/')
 
